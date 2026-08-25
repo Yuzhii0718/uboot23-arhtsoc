@@ -1,0 +1,22 @@
+&partitions {
+    partition@0 {
+        label = "bootloader";
+        reg = <0x00000000 0x00000000 0x00000000 0x00080000>; /* 512KB */
+    };
+    partition@80000 {
+        label = "tclinux";
+        reg = <0x00000000 0x00080000 0x00000000 0x03200000>; /* 40MB */
+    };
+    partition@3280000 {
+        label = "tclinux_slave";
+        reg = <0x00000000 0x03280000 0x00000000 0x03200000>; /* 40MB */
+    };
+    partition@6480000 {
+        label = "rootfs_data";
+        reg = <0x00000000 0x06480000 0x00000000 0x00800000>; /* 512KB */
+    };
+    partition@dd00000 {
+        label = "art";
+        reg = <0x00000000 0xffffffff 0x00000000 0x00380000>; /* 3584KB */
+    };
+};

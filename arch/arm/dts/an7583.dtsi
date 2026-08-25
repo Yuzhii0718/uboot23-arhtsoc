@@ -7,7 +7,7 @@
 /dts-v1/;
 
 / {
-	compatible = "airoha,an7581";
+	compatible = "airoha,an7583";
 	interrupt-parent = <&gic>;
 	#address-cells = <2>;
 	#size-cells = <2>;
@@ -52,12 +52,6 @@
 				core1 {
 					cpu = <&cpu1>;
 				};
-				core2 {
-					cpu = <&cpu2>;
-				};
-				core3 {
-					cpu = <&cpu3>;
-				};
 			};
 		};
 
@@ -74,24 +68,6 @@
 			device_type = "cpu";
 			compatible = "arm,cortex-a53";
 			reg = <0x1>;
-			enable-method = "psci";
-			clock-frequency = <80000000>;
-			next-level-cache = <&L2_0>;
-		};
-
-		cpu2: cpu@2 {
-			device_type = "cpu";
-			compatible = "arm,cortex-a53";
-			reg = <0x2>;
-			enable-method = "psci";
-			clock-frequency = <80000000>;
-			next-level-cache = <&L2_0>;
-		};
-
-		cpu3: cpu@3 {
-			device_type = "cpu";
-			compatible = "arm,cortex-a53";
-			reg = <0x3>;
 			enable-method = "psci";
 			clock-frequency = <80000000>;
 			next-level-cache = <&L2_0>;
@@ -139,7 +115,7 @@
 
 	npu@1e800000 {
 		compatible = "econet,ecnt-npu";
-		reg = <0x0 0x1e800000 0x0 0x78000>,		//NPU 480K SRAM
+		reg = <0x0 0x1e800000 0x0 0x80000>,		//NPU 512K SRAM for 7583
 			  <0x0 0x1e900000 0x0 0x313000>;	//NPU  32K SRAM, registers
 //		memory-region = <&npu_reserved>;
 		interrupts = <GIC_SPI 118 IRQ_TYPE_LEVEL_HIGH>,
@@ -161,11 +137,15 @@
 
 	apb_timer1: apb_timer1@1fbf0100 {
 		compatible = "econet,ecnt-timer";
-		reg = <0x0 0x1fbf0100 0x0 0x40>;
+		reg = <0x0 0x1fbf0100 0x0 0x60>;
 		interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>,
 			     <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 22 IRQ_TYPE_LEVEL_HIGH>,					 
-			     <GIC_SPI 25 IRQ_TYPE_LEVEL_HIGH>;		
+			     <GIC_SPI 22 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 25 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 17 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 29 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 213 IRQ_TYPE_LEVEL_HIGH>;		
 	};
 
 	memory@80000000 {
@@ -194,11 +174,11 @@
 			  <0x0 0x1fa2FF30 0x0 0x10>;			//Rbus clk ctl for FPGA
 				interrupts = <GIC_SPI 47 IRQ_TYPE_LEVEL_HIGH>;			  
 	};
-
-	pcie0: pcie0@1fc00000 {
+	
+	pcie0: pcie0@1fc20000 {
 	  device_type = "pci";
 	  compatible = "ecnt,pcie-ecnt";
-		reg = <0x0 0x1fc00000 0x0 0x20000>;
+		reg = <0x0 0x1fc20000 0x0 0x20000>;
 		reg-names = "pcie-mac";
 	  #address-cells = <3>;
 	  #size-cells = <2>;
@@ -218,11 +198,10 @@
 				            #interrupt-cells = <1>;
 			            };
 	  };
-
-	pcie1: pcie1@1fc20000 {
+	pcie1: pcie1@1fa92000 {
 			device_type = "pci";
 		compatible = "ecnt,pcie-ecnt";
-		reg = <0x0 0x1fc20000 0x0 0x20000>;
+		reg = <0x0 0x1fa92000 0x0 0x1000>;
 		reg-names = "pcie-mac";
 			#address-cells = <3>;
 			#size-cells = <2>;
@@ -242,7 +221,7 @@
 				            #interrupt-cells = <1>;
 			            };
 		};
-
+#if 0
 	pcie2: pcie2@1fc40000 {
 		device_type = "pci";
 		compatible = "ecnt,pcie-ecnt";
@@ -266,6 +245,7 @@
 			#interrupt-cells = <1>;
 		};
 	};
+#endif
 	wdma{    
     compatible = "en751221,wdma"; 
     reg = <0x0 0x1fa06000 0x0 0x400 >,
@@ -283,9 +263,9 @@
     wed_num = <2>;
     pci_slot_map = <0>, <1>;
     reg = <0x0 0x1fa02000 0x0 0xb00 >,
-     			<0x0 0x1fa03000 0x0 0xb00 >;    
+     			<0x0 0x1fa02000 0x0 0xb00 >;    
     interrupts = <GIC_SPI 67 IRQ_TYPE_LEVEL_HIGH>,   
-     						 <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>; 
+     						 <GIC_SPI 67 IRQ_TYPE_LEVEL_HIGH>; 
   };  
     
   wed2{    
@@ -338,19 +318,10 @@
 		compatible = "econet,ecnt-xsi";
 		reg = <0x0 0x1fa08000 0x0 0x300>,	  //hsgmii ae
 		      <0x0 0x1fa04000 0x0 0x300>,   //hsgmii pcie0
-		      <0x0 0x1fa05000 0x0 0x300>,	  //hsgmii pcie1
-		      <0x0 0x1fa07000 0x0 0x300>,	  //hsgmii usb
+		      <0x0 0x1fa07000 0x0 0x300>,	  //hsgmii pcie1
+		      <0x0 0x1fa05000 0x0 0x300>,	  //hsgmii usb
 			  <0x0 0x1fa09000 0x0 0x300>;	  //eth usb
 	};
-
-	i2c_slave@1fbe3300 {
-		compatible = "econet,ecnt-i2c_slave";
-		reg = <0x0 0x1fbe3300 0x0 0x10>;
-		dev0_addr = <0x60>;
-		dev1_addr = <0x62>;
-		interrupts = <GIC_SPI 28 IRQ_TYPE_LEVEL_HIGH>;
-	};
-
 	pbus_monitor@1fbe3400 {
 		compatible = "econet,ecnt-pbus_monitor";
 		reg = <0x0 0x1fbe3400 0x0 0xfc>;
@@ -358,7 +329,7 @@
 	};
 	
 	uart1: serial@1fbf0000 {
-		compatible = "airoha,an7581-uart";
+		compatible = "airoha,an7583-uart";
 		reg = <0x0 0x1fbf0000 0x0 0x30>;
 		interrupts = <GIC_SPI 18 IRQ_TYPE_LEVEL_HIGH>;
 		u-boot,dm-pre-reloc;
@@ -367,7 +338,7 @@
     uart2: serial@1fbf0300 {
         compatible = "econet,ecnt-uart2";
         reg = <0x0 0x1fbf0300 0x0 0x30>,
-              <0x0 0x1fbe1000 0x0 0x40>,
+              <0x0 0x1fbe1000 0x0 0x7F>,
               <0x0 0x1fbf0600 0x0 0x30>,
               <0x0 0x1fbf0700 0x0 0x30>;
         interrupts = <GIC_SPI 32 IRQ_TYPE_LEVEL_HIGH>,
@@ -388,7 +359,7 @@
 	};
 	
 	gpio: gpio@1fbf0200 {
-		compatible = "airoha,an7581-gpio";
+		compatible = "airoha,an7583-gpio";
 		status = "okay";
 		gpio_base = <0>;
 		reg = <0x0 0x1fbf0204 0x0 0x4>,
@@ -400,7 +371,7 @@
 	};
 
 	gpio1: gpio@1fbf0270 {
-		compatible = "airoha,an7581-gpio";
+		compatible = "airoha,an7583-gpio";
 		status = "okay";
 		gpio_base = <32>;
 		reg = <0x0 0x1fbf0270 0x0 0x4>,
@@ -411,7 +382,7 @@
 		#gpio-cells = <2>;
 	};
 	spi0: spi@1100a000 {
-		compatible = "airoha,an7581-spi";
+		compatible = "airoha,an7583-spi";
 		u-boot,dm-pre-reloc;
 		reg = <0x0 0x1fa10000 0x0 0x140>,		//SPI Controller Base
 			  <0x0 0x1fa11000 0x0 0x160>;		//SPI NFI2SPI
@@ -483,14 +454,6 @@
 			<0x0 0x1fab3e00 0x0 0x100>;     //IPPC base address
 		interrupts = <GIC_SPI 33 IRQ_TYPE_LEVEL_HIGH>;
 	};
-
-	xhci_hcd2: xhci@1fad0000 {
-		compatible = "airoha,arht-xhci2";
-		reg = <0x0 0x1fad0000 0x0 0x3e00>,      //MAC base address
-			<0x0 0x1fad3e00 0x0 0x100>;     //IPPC base address
-		interrupts = <GIC_SPI 150 IRQ_TYPE_LEVEL_HIGH>;
-	};
-
 	pon_phy: pon_phy@1faf0000 {
 		compatible = "econet,ecnt-pon_phy";
 		reg = <0x0 0x1faf0000 0x0 0x1fff>, // PON_PHY_ASIC_RG range
@@ -553,7 +516,7 @@
 	};
 	
 	eth: eth@1fb59000 {
-		compatible = "airoha,an7581-eth";
+		compatible = "airoha,an7583-eth";
 		reg =  <0x0 0x1fb59000 0x0 0x7000>;
 			
 		//interrupts = <GIC_SPI 66 IRQ_TYPE_LEVEL_HIGH>;
@@ -665,31 +628,10 @@
 		reg = <0x0 0x0>;
 		spi-max-frequency = <50000000>;
 		
-		partitions {
+		partitions: partitions {
 			compatible = "fixed-partitions";
 			#address-cells = <2>;
 			#size-cells = <2>;
-
-			partition@0 {
-				label = "bootloader";
-				reg = <0x00000000 0x00000000 0x00000000 0x00080000>; /* 512KB */
-			};
-			partition@80000 {
-				label = "tclinux";
-				reg = <0x00000000 0x00080000 0x00000000 0x03200000>; /* 40MB */
-			};
-			partition@3280000 {
-				label = "tclinux_slave";
-				reg = <0x00000000 0x03280000 0x00000000 0x03200000>; /* 40MB */
-			};
-			partition@6480000 {
-				label = "rootfs_data";
-				reg = <0x00000000 0x06480000 0x00000000 0x00800000>; /* 512KB */
-			};
-			partition@dd00000 {
-				label = "art";
-				reg = <0x00000000 0xffffffff 0x00000000 0x00380000>; /* 3584KB */
-			};
 		};
 	};
 };

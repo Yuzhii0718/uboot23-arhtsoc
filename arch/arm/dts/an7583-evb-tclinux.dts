@@ -1,0 +1,13 @@
+/dts-v1/;
+#include "an7583.dtsi"
+#include "airoha-aarch64-tclinux-layout.dtsi"
+
+/ {
+    model = "AN7583 EVB(tclinux layout)";
+    compatible = "airoha,an7583", "airoha,an7583-evb";
+
+	chosen { 
+		bootargs = "root=/dev/mtdblock3 ro console=ttyS0,115200n8 earlycon init=/sbin/init";
+		stdout-path = &uart1;
+	};
+};

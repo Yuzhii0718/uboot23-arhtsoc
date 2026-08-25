@@ -1,0 +1,13 @@
+/dts-v1/;
+#include "en7523.dtsi"
+#include "airoha-armv7-tclinux-layout.dtsi"
+
+/ {
+    model = "EN7523 EVB(tclinux layout)";
+    compatible = "airoha,en7523", "airoha,en7523-evb";
+
+	chosen { 
+		bootargs = "root=/dev/mtdblock3 ro console=ttyS0,115200n8 earlycon init=/sbin/init";
+		stdout-path = &uart1;
+	};
+};

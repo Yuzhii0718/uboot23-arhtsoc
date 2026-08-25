@@ -45,8 +45,10 @@ dtb-$(CONFIG_ARCH_DAVINCI) += \
 	da850-lego-ev3.dtb
 
 dtb-$(CONFIG_ARCH_AIROHA) += \
-	en7523-evb.dtb  \
-	an7581-evb.dtb
+	en7523-evb-tclinux.dtb  \
+	an7552-evb-tclinux.dtb  \
+	an7581-evb-tclinux.dtb  \
+	an7583-evb-tclinux.dtb
 
 dtb-$(CONFIG_ARCH_KIRKWOOD) += \
 	kirkwood-atl-sbx81lifkw.dtb \
