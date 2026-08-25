@@ -589,7 +589,7 @@ struct spl_boot_device {
  * @load_image: Function to call to load image
  */
 struct spl_image_loader {
-#ifdef CONFIG_SPL_LIBCOMMON_SUPPORT
+#if	defined(CONFIG_SPL_LIBCOMMON_SUPPORT) || defined(CONFIG_TPL_LIBCOMMON_SUPPORT)
 	const char *name;
 #endif
 	uint boot_device;

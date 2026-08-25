@@ -1,0 +1,17 @@
+/*(C) Copyright 2023 Airoha Technology Corp.
+ * 
+ *  Shubham Jain, Shubham.jain@airoha.common.
+ *  Zhengping Zhang , zhengping.zhang@airoha.com
+*/ 
+if TARGET_AN7552
+
+config SYS_BOARD
+       default "an7552"
+
+config SYS_VENDOR
+       default "airoha"
+
+config SYS_CONFIG_NAME
+       default "an7552"
+
+endif

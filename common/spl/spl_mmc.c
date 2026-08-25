@@ -97,7 +97,7 @@ int mmc_load_image_raw_sector(struct spl_image_info *spl_image,
 		goto end;
 	}
 
-	if (IS_ENABLED(CONFIG_SPL_LOAD_FIT) &&
+	if ((IS_ENABLED(CONFIG_SPL_LOAD_FIT) || IS_ENABLED(CONFIG_TPL_LOAD_FIT)) &&
 	    image_get_magic(header) == FDT_MAGIC) {
 		struct spl_load_info load;
 

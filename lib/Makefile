@@ -69,7 +69,7 @@ obj-y += crypto/
 obj-$(CONFIG_$(SPL_TPL_)GENERATE_ACPI_TABLE) += acpi/
 obj-$(CONFIG_$(SPL_)MD5) += md5.o
 obj-$(CONFIG_ECDSA) += ecdsa/
-obj-$(CONFIG_$(SPL_)RSA) += rsa/
+obj-$(CONFIG_$(SPL_TPL_)RSA) += rsa/
 obj-$(CONFIG_HASH) += hash-checksum.o
 obj-$(CONFIG_BLAKE2) += blake2/blake2b.o
 obj-$(CONFIG_SHA1) += sha1.o
@@ -148,6 +148,7 @@ obj-y += rtc-lib.o
 obj-$(CONFIG_LIB_ELF) += elf.o
 
 obj-$(CONFIG_$(SPL_TPL_)SEMIHOSTING) += semihosting.o
+
 
 #
 # Build a fast OID lookup registry from include/linux/oid_registry.h

@@ -185,6 +185,18 @@ config OF_OVERLAY_LIST
 	  control. This option can then be used by a FIT generator to include
 	  the overlays in the FIT image.
 
+config TPL_OF_LIST
+        string "List of device tree files to include for DT control in SPL" if SPL_MULTI_DTB_FIT
+        depends on TPL_OF_CONTROL
+        default OF_LIST
+        help
+          This option specifies a list of device tree files to use for DT
+          control in the SPL. These will be packaged into a FIT. At run-time,
+          the SPL will select the correct DT to use by examining the
+          hardware (e.g. reading a board ID value). This is a list of
+          device tree files (without the directory or .dtb suffix)
+          separated by <space>.
+
 choice
 	prompt "OF LIST compression"
 	depends on MULTI_DTB_FIT

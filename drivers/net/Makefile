@@ -3,8 +3,6 @@
 # (C) Copyright 2006
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
-KBUILD_CFLAGS += -DMDC_MDIO_OPERATION -Idrivers/net/airoha/rtl8372n -Idrivers/net/airoha/rtl8372n/dal/rtl8373 -Iinclude/linux -Idrivers/net/airoha/rtl8372n/dal
-
 obj-$(CONFIG_AG7XXX) += ag7xxx.o
 obj-$(CONFIG_ALTERA_TSE) += altera_tse.o
 obj-$(CONFIG_ASPEED_MDIO) += aspeed_mdio.o

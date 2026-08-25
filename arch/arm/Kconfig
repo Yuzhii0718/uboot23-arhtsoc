@@ -1012,6 +1012,7 @@ config ARCH_AIROHA
 	bool "Airoha SoCs"
 	select DM
 	select OF_CONTROL
+	select TPL_DM_MMC if TPL_MMC
 	help
 	  Support for the Airoha soc.
 
