@@ -248,6 +248,21 @@ HOSTLDLIBS_mkeficapsule += \
 	$(shell pkg-config --libs uuid 2> /dev/null || echo "-luuid")
 hostprogs-$(CONFIG_TOOLS_MKEFICAPSULE) += mkeficapsule
 
+# fiptool for ARM Trusted Firmware FIP image manipulation
+hostprogs-always-$(CONFIG_TOOLS_FIPTOOL) += fiptool
+fiptool-objs := fiptool-src/fiptool.o fiptool-src/tbbr_config.o
+
+FIPTOOL_INCLUDE_DIRS := \
+	-I$(srctree)/tools/fiptool-src \
+	-I$(srctree)/tools/fiptool-src/include/tools_share \
+	-I$(srctree)/tools/fiptool-src/include
+
+HOSTCFLAGS_fiptool-src/fiptool.o += $(FIPTOOL_INCLUDE_DIRS)
+HOSTCFLAGS_fiptool-src/tbbr_config.o += $(FIPTOOL_INCLUDE_DIRS)
+
+HOSTLDLIBS_fiptool += \
+	$(shell pkg-config --libs libssl libcrypto 2> /dev/null || echo "-lssl -lcrypto")
+
 # We build some files with extra pedantic flags to try to minimize things
 # that won't build on some weird host compiler -- though there are lots of
 # exceptions for files that aren't complaint.
