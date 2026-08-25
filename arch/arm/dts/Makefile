@@ -46,9 +46,13 @@ dtb-$(CONFIG_ARCH_DAVINCI) += \
 
 dtb-$(CONFIG_ARCH_AIROHA) += \
 	en7523-evb-tclinux.dtb  \
-	an7552-evb-tclinux.dtb  \
-	an7581-evb-tclinux.dtb  \
-	an7583-evb-tclinux.dtb
+	en7523-evb-ubi.dtb  \
+	an7552-evb-tclinux.dtb \
+	an7552-evb-ubi.dtb \
+	an7581-evb-tclinux.dtb \
+	an7581-evb-ubi.dtb \
+	an7583-evb-tclinux.dtb \
+	an7583-evb-ubi.dtb \
 
 dtb-$(CONFIG_ARCH_KIRKWOOD) += \
 	kirkwood-atl-sbx81lifkw.dtb \

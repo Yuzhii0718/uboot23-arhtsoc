@@ -1,0 +1,13 @@
+/dts-v1/;
+#include "en7523.dtsi"
+#include "airoha-armv7-ubi-layout.dtsi"
+
+/ {
+    model = "EN7523 EVB(UBI layout)";
+    compatible = "airoha,en7523", "airoha,en7523-evb";
+
+	chosen { 
+		bootargs = "console=ttyS0,115200 earlycon";
+		stdout-path = &uart1;
+	};
+};

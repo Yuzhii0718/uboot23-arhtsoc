@@ -1,0 +1,13 @@
+/dts-v1/;
+#include "an7552.dtsi"
+#include "airoha-armv7-ubi-layout.dtsi"
+
+/ {
+    model = "AN7552 EVB(UBI layout)";
+    compatible = "airoha,an7552", "airoha,an7552-evb";
+
+	chosen { 
+		bootargs = "console=ttyS0,115200 earlycon";
+		stdout-path = &uart1;
+	};
+};

@@ -1,0 +1,11 @@
+&partitions {
+    partition@0 {
+        label = "u-boot";
+        reg = <0x00000000 0x00100000>; /* 1MB */
+    };
+    partition@100000 {
+        label = "ubi";
+        compatible = "linux,ubi";
+        reg = <0x00100000 0x7F00000>; /* 127MB */
+    };
+};
