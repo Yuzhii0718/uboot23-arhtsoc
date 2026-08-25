@@ -108,3 +108,12 @@ __pycache__
 
 # moveconfig database
 /moveconfig.db
+
+# Output
+*.fip
+*.lzma
+*.uImage
+fiptool
+bootext.ram
+output
+flash_table_gen
