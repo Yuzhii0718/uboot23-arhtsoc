@@ -1,6 +1,13 @@
 config MTD_NAND_CORE
 	tristate
 
+config AIROHA_BMT
+	bool "Airoha BMT"
+	depends on MTD_NAND_CORE
+	default y
+	help
+	  Airoha BMT is a bad block management tool for NAND flash.
+
 source "drivers/mtd/nand/raw/Kconfig"
 
 source "drivers/mtd/nand/spi/Kconfig"

@@ -11,4 +11,4 @@ obj-$(CONFIG_$(SPL_TPL_)SPI_FLASH_SUPPORT) += nandcore.o
 obj-$(CONFIG_$(SPL_TPL_)SPI_FLASH_SUPPORT) += spi/
 obj-$(CONFIG_$(SPL_TPL_)NAND_SUPPORT) += raw/
 endif
-obj-y += airoha-bmt.o mtk-bmt.o
+obj-$(CONFIG_AIROHA_BMT) += airoha-bmt.o mtk-bmt.o
