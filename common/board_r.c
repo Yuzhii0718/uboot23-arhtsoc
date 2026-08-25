@@ -67,6 +67,11 @@
 #include <efi_loader.h>
 #include <relocate.h>
 
+#ifdef TCSUPPORT_BOARD_SELECT
+#include <linux/string.h>
+#include <airoha/airoha_board.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 ulong monitor_flash_len;
@@ -463,6 +468,33 @@ static int initr_env(void)
 	return 0;
 }
 
+static int initr_gpt(void)
+{
+	char *gptenv = NULL;
+	struct blk_desc *blk_dev_desc = NULL;
+
+	if((blk_dev_desc = blk_get_dev("mmc", 0)) == NULL) 
+	{
+		printf("%s: mmc dev 0 NOT available\n",__func__);
+		return 0;
+	}
+
+	gptenv = env_get("partitions");
+	if(gpt_verify(blk_dev_desc, gptenv))
+	{
+		printf("gpt info verify failed\n");
+		if(gpt_default(blk_dev_desc, gptenv))
+		{
+			printf("gpt info write failed\n");
+			return 0;
+		}
+		else
+			printf("gpt info write success\n");
+	}
+	return 0;
+}
+
+
 #ifdef CONFIG_SYS_MALLOC_BOOTPARAMS
 static int initr_malloc_bootparams(void)
 {
@@ -497,6 +529,106 @@ static int initr_scsi(void)
 	return 0;
 }
 #endif
+
+
+#ifdef TCSUPPORT_BOARD_SELECT
+static void get_board_id(RFB_ID_t* rfb_id)
+{
+	char efuse_read_cmd[30];
+	uint8_t id1_remark,id2_remark;
+	char value[256]={0};
+	uint32_t efuse_value;
+
+	snprintf(efuse_read_cmd, sizeof(efuse_read_cmd), "efuse READ %x 1", (uint32_t)value);
+
+	run_command(efuse_read_cmd, 0);
+
+	efuse_value=((uint32_t*) value)[0];
+
+	id1_remark=(efuse_value>>ID1_REMARK_LSB)&ID1_REMARK_MASK;
+	id2_remark=(efuse_value>>ID2_REMARK_LSB)&ID2_REMARK_MASK;
+	
+	if(1==id1_remark){													/*check wether  id1_remark is 1 or not*/
+		rfb_id->id1=(efuse_value>>REMARKD_ID1_LSB)&REMARKD_ID1_MASK;   /*if it is 1 then return remarkd_id1*/			
+	}else{			
+		rfb_id->id1=(efuse_value>>ID1_LSB)&ID1_MASK;					/*otherwise return id1*/
+	}
+
+	if(1==id2_remark){												/*check wether  id2_remark is 1 or not*/
+		rfb_id->id2=(efuse_value>>REMARKD_ID2_LSB)&REMARKD_ID2_MASK; /*if it is 1 then return remarkd_id2*/			
+	}else{
+		rfb_id->id2=(efuse_value>>ID2_LSB)&ID2_MASK;				/*otherwise return id2*/
+	}
+}
+
+/*set rfb_id1/id2 into uboot env*/
+static void init_rfb_no(void)
+{
+	char buf[30];
+	char rfb_id1[ID1_LEN+1], rfb_id2[ID2_LEN+1];
+	RFB_ID_t rfb_id;
+	
+	get_board_id(&rfb_id);
+
+	snprintf(rfb_id1, sizeof(rfb_id1), "%x", rfb_id.id1);
+	printf("%s=%s\n", BOOTARGS_RFB_ID1_STR, rfb_id1);
+	env_set(BOOTARGS_RFB_ID1_STR, rfb_id1); 
+
+	snprintf(rfb_id2, sizeof(rfb_id2), "%02x", rfb_id.id2);
+	printf("%s=%s\n", BOOTARGS_RFB_ID2_STR, rfb_id2);
+	env_set(BOOTARGS_RFB_ID2_STR, rfb_id2); 
+
+	snprintf(buf, sizeof(buf), "rfb_%s%s", rfb_id1, rfb_id2);
+	if(NULL==env_get(buf)){
+		env_set("rfb_no", "rfb_defult"); 
+	}else{
+		env_set("rfb_no", buf);
+	}
+	/*printf("rfb_no=%s\n", env_get("rfb_no")); */
+
+	snprintf(buf, sizeof(buf), "%s", env_get(env_get("rfb_no")));
+	printf("rfb_cfg=%s\n", buf); 
+	env_set("rfb_cfg", buf);
+
+}
+
+static int init_serdes_env(void)
+{
+	char* serdes_bootargs[NUM_SERDES_ARGS] = {BOOTARGS_PON, BOOTARGS_ETH, BOOTARGS_WIFI1, BOOTARGS_WIFI2, BOOTARGS_USB1};
+	int i=0;
+	char buf[30];
+	char *token_str, *rfb_cfg;
+	const char* delim=",";
+
+	snprintf(buf, sizeof(buf), "%s", env_get("rfb_cfg"));
+	rfb_cfg=buf;
+
+	for(i=0;i<NUM_SERDES_ARGS;i++){
+		token_str=strsep(&rfb_cfg, delim);
+		if(NULL==token_str){
+			return -1;
+		}
+		printf("%s=%s\n",serdes_bootargs[i],token_str);
+		env_set(serdes_bootargs[i], token_str); 
+	}
+	return 0;
+
+}
+
+static int init_arht_rfb(void)
+{
+	int ret = 0;
+
+	/*initialize rfb env*/
+	init_rfb_no();
+	
+	/*initialize serdes env*/
+	ret=init_serdes_env();
+
+	return ret;
+}
+#endif
+
 
 #ifdef CONFIG_CMD_NET
 static int initr_net(void)
@@ -713,6 +845,9 @@ static init_fnc_t init_sequence_r[] = {
 	initr_pvblock,
 #endif
 	initr_env,
+#ifdef CONFIG_MMC
+	initr_gpt,
+#endif
 #ifdef CONFIG_SYS_MALLOC_BOOTPARAMS
 	initr_malloc_bootparams,
 #endif
@@ -768,6 +903,9 @@ static init_fnc_t init_sequence_r[] = {
 #endif
 #ifdef CONFIG_PCI_ENDPOINT
 	pci_ep_init,
+#endif
+#ifdef TCSUPPORT_BOARD_SELECT
+	init_arht_rfb,
 #endif
 #ifdef CONFIG_CMD_NET
 	INIT_FUNC_WATCHDOG_RESET

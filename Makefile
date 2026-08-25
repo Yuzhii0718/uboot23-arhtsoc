@@ -454,6 +454,8 @@ endif
 KBUILD_CFLAGS	+= $(call cc-option,-fno-PIE)
 KBUILD_AFLAGS	+= $(call cc-option,-fno-PIE)
 
+KBUILD_CFLAGS += $(SDK_FLAGS)
+
 # Read UBOOTRELEASE from include/config/uboot.release (if it exists)
 UBOOTRELEASE = $(shell cat include/config/uboot.release 2> /dev/null)
 UBOOTVERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)
@@ -712,6 +714,39 @@ KBUILD_CFLAGS	+= -Og -Wno-maybe-uninitialized
 KBUILD_CFLAGS	+= -Wno-maybe-uninitialized
 endif
 
+ifneq ($(strip $(TCSUPPORT_ARM_SECURE_BOOT)),)
+KBUILD_CFLAGS += -DTCSUPPORT_ARM_SECURE_BOOT
+endif
+
+ifneq ($(strip $(TCSUPPORT_ARM_SECURE_BOOT_FW_ENC)),)
+KBUILD_CFLAGS += -DTCSUPPORT_ARM_SECURE_BOOT_FW_ENC
+endif
+
+ifneq ($(strip $(TCSUPPORT_OPENWRT)),)
+KBUILD_CFLAGS += -DTCSUPPORT_OPENWRT
+endif
+
+ifneq ($(strip $(TCSUPPORT_CPU_AN7583)),)
+KBUILD_CFLAGS += -DTCSUPPORT_CPU_AN7583
+endif
+
+ifneq ($(strip $(TCSUPPORT_BOARD_SELECT)),)
+KBUILD_CFLAGS += -DTCSUPPORT_BOARD_SELECT
+endif
+
+ifneq ($(strip $(TCSUPPORT_DM_VERITY)),)
+KBUILD_CFLAGS += -DTCSUPPORT_DM_VERITY
+endif
+
+ifneq ($(strip $(TCSUPPORT_DM_CRYPT)),)
+KBUILD_CFLAGS += -DTCSUPPORT_DM_CRYPT
+endif
+
+ifneq ($(strip $(TCSUPPORT_TCBOOT_1MB_SIZE)),)
+KBUILD_CFLAGS += -DTCSUPPORT_TCBOOT_1MB_SIZE
+endif
+
+
 LTO_CFLAGS :=
 LTO_FINAL_LDFLAGS :=
 export LTO_CFLAGS LTO_FINAL_LDFLAGS
@@ -892,7 +927,11 @@ u-boot-main := $(libs-y)
 ifeq ($(CONFIG_USE_PRIVATE_LIBGCC),y)
 PLATFORM_LIBGCC = arch/$(ARCH)/lib/lib.a
 else
+ifneq ($(strip $(RDKB_BUILD)),)
+PLATFORM_LIBGCC := -L $(shell dirname `$(CC) $(c_flags) -print-libgcc-file-name`)
+else
 PLATFORM_LIBGCC := -L $(shell dirname `$(CC) $(c_flags) -print-libgcc-file-name`) -lgcc
+endif
 endif
 PLATFORM_LIBS += $(PLATFORM_LIBGCC)
 

@@ -58,12 +58,21 @@ DECLARE_GLOBAL_DATA_PTR;
 #define ENV_IS_IN_DEVICE
 
 #endif
+#if defined(CONFIG_UBOOT_ARHT) && defined(CONFIG_ENV_IS_IN_SNAND_FLASH)
+#define ENV_IS_IN_DEVICE
+#endif
 
 #if	!defined(ENV_IS_IN_DEVICE)		&& \
 	!defined(CONFIG_ENV_IS_NOWHERE)
 # error Define one of CONFIG_ENV_IS_IN_{EEPROM|FLASH|MMC|FAT|EXT4|\
 NAND|NVRAM|ONENAND|SATA|SPI_FLASH|REMOTE|UBI} or CONFIG_ENV_IS_NOWHERE
 #endif
+
+#if defined(CONFIG_UBOOT_ARHT) && !defined(ENV_IS_IN_DEVICE)		&& \
+	!defined(CONFIG_ENV_IS_NOWHERE)
+# error Define one of CONFIG_ENV_IS_IN_{SNAND_FLASH} or CONFIG_ENV_IS_NOWHERE
+#endif
+
 
 /*
  * Maximum expected input data size for import command

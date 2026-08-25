@@ -12,7 +12,7 @@ endif
 obj-$(CONFIG_PL01X_SERIAL) += serial_pl01x.o
 obj-$(CONFIG_PL011_SERIAL) += serial_pl01x.o
 obj-$(CONFIG_$(SPL_)SYS_NS16550_SERIAL) += serial_ns16550.o
-
+obj-$(CONFIG_ARHT_SERIAL) += serial_arht.o
 obj-$(CONFIG_ALTERA_UART) += altera_uart.o
 obj-$(CONFIG_ALTERA_JTAG_UART) += altera_jtag_uart.o
 obj-$(CONFIG_AR933X_UART) += serial_ar933x.o

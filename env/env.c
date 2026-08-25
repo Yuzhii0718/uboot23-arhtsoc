@@ -84,6 +84,11 @@ static enum env_location env_locations[] = {
 #ifdef CONFIG_ENV_IS_IN_UBI
 	ENVL_UBI,
 #endif
+#ifdef CONFIG_UBOOT_ARHT 
+#ifdef CONFIG_ENV_IS_IN_SNAND_FLASH
+	ENVL_SNAND_FLASH,
+#endif
+#endif
 #ifdef CONFIG_ENV_IS_NOWHERE
 	ENVL_NOWHERE,
 #endif

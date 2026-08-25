@@ -222,28 +222,28 @@ static struct disk_part *allocate_disk_part(struct disk_partition *info,
 	return newpart;
 }
 
-static void prettyprint_part_size(char *sizestr, lbaint_t partsize,
+static void prettyprint_part_size(char *sizestr, int size, lbaint_t partsize,
 				  lbaint_t blksize)
 {
 	unsigned long long partbytes, partmegabytes;
 
 	partbytes = partsize * blksize;
 	partmegabytes = lldiv(partbytes, SZ_1M);
-	snprintf(sizestr, 16, "%lluMiB", partmegabytes);
+	snprintf(sizestr, size, "%lluMiB(0x%llx)", partmegabytes, partbytes);
 }
 
 static void print_gpt_info(void)
 {
 	struct list_head *pos;
 	struct disk_part *curr;
-	char partstartstr[16];
-	char partsizestr[16];
+	char partstartstr[32];
+	char partsizestr[32];
 
 	list_for_each(pos, &disk_partitions) {
 		curr = list_entry(pos, struct disk_part, list);
-		prettyprint_part_size(partstartstr, curr->gpt_part_info.start,
+		prettyprint_part_size(partstartstr, sizeof(partstartstr), curr->gpt_part_info.start,
 				      curr->gpt_part_info.blksz);
-		prettyprint_part_size(partsizestr, curr->gpt_part_info.size,
+		prettyprint_part_size(partsizestr, sizeof(partsizestr), curr->gpt_part_info.size,
 				      curr->gpt_part_info.blksz);
 
 		printf("Partition %d:\n", curr->partnum);
@@ -595,7 +595,7 @@ static int gpt_repair(struct blk_desc *blk_dev_desc)
 	return ret;
 }
 
-static int gpt_default(struct blk_desc *blk_dev_desc, const char *str_part)
+int gpt_default(struct blk_desc *blk_dev_desc, const char *str_part)
 {
 	int ret;
 	char *str_disk_guid;
@@ -623,7 +623,7 @@ static int gpt_default(struct blk_desc *blk_dev_desc, const char *str_part)
 	return ret;
 }
 
-static int gpt_verify(struct blk_desc *blk_dev_desc, const char *str_part)
+int gpt_verify(struct blk_desc *blk_dev_desc, const char *str_part)
 {
 	ALLOC_CACHE_ALIGN_BUFFER_PAD(gpt_header, gpt_head, 1,
 				     blk_dev_desc->blksz);

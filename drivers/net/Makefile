@@ -3,6 +3,7 @@
 # (C) Copyright 2006
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
+KBUILD_CFLAGS += -DMDC_MDIO_OPERATION -Idrivers/net/airoha/rtl8372n -Idrivers/net/airoha/rtl8372n/dal/rtl8373 -Iinclude/linux -Idrivers/net/airoha/rtl8372n/dal
 
 obj-$(CONFIG_AG7XXX) += ag7xxx.o
 obj-$(CONFIG_ALTERA_TSE) += altera_tse.o
@@ -13,6 +14,7 @@ obj-$(CONFIG_BCMGENET) += bcmgenet.o
 obj-$(CONFIG_BCM_SF2_ETH) += bcm-sf2-eth.o
 obj-$(CONFIG_BCM_SF2_ETH_GMAC) += bcm-sf2-eth-gmac.o
 obj-$(CONFIG_BNXT_ETH) += bnxt/
+obj-$(CONFIG_AIROHA_ETH) += airoha/
 obj-$(CONFIG_CALXEDA_XGMAC) += calxedaxgmac.o
 obj-$(CONFIG_CORTINA_NI_ENET) += cortina_ni.o
 obj-$(CONFIG_DM_ETH_PHY) += eth-phy-uclass.o

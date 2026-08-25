@@ -34,6 +34,7 @@ obj-$(CONFIG_CMD_BOOTCOUNT) += bootcount.o
 obj-$(CONFIG_CMD_BOOTEFI) += bootefi.o
 obj-$(CONFIG_CMD_BOOTMENU) += bootmenu.o
 obj-$(CONFIG_CMD_BOOTSTAGE) += bootstage.o
+obj-$(CONFIG_CMD_BOOTFLAG) += bootflag.o
 obj-$(CONFIG_CMD_BOOTZ) += bootz.o
 obj-$(CONFIG_CMD_BOOTI) += booti.o
 obj-$(CONFIG_CMD_BTRFS) += btrfs.o
@@ -188,7 +189,7 @@ obj-$(CONFIG_CMD_VIDCONSOLE) += video.o
 
 obj-$(CONFIG_CMD_FASTBOOT) += fastboot.o
 obj-$(CONFIG_CMD_FS_UUID) += fs_uuid.o
-
+obj-$(CONFIG_CMD_EFUSE) += efuse.o
 obj-$(CONFIG_CMD_USB_MASS_STORAGE) += usb_mass_storage.o
 obj-$(CONFIG_CMD_USB_SDP) += usb_gadget_sdp.o
 obj-$(CONFIG_CMD_THOR_DOWNLOAD) += thordown.o

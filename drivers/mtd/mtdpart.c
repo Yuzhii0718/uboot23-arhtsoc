@@ -930,6 +930,20 @@ int add_mtd_partitions_of(struct mtd_info *master)
 		if (ofnode_read_bool(child, "lock"))
 			part.mask_flags |= MTD_POWERUP_LOCK;
 
+		if (!strcmp(part.name, "art")){
+			//printf("\n\033[32;1m [art] %s, line=%d   \033[0m\n", __FUNCTION__, __LINE__);
+			/* use the last block to record bootflag */
+			offset = (master->size) - size;
+		}else{
+			//printf("\n\033[31;1m [non-art] %s, line=%d   name=%s \033[0m\n", __FUNCTION__, __LINE__,part.name);
+		}
+
+		
+		//printf("\n\033[32;1m %s, line=%d   master size = 0x%x M \033[0m\n", __FUNCTION__, __LINE__,(master->size)>>20);
+		//printf("\n\033[33;1m %s, line=%d   offset = 0x%x \033[0m\n", __FUNCTION__, __LINE__,offset);
+
+		
+		
 		part.offset = offset;
 		part.size = size;
 		part.ecclayout = master->ecclayout;

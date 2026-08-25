@@ -26,9 +26,16 @@
 #include <vsprintf.h>
 #endif	/* __ASSEMBLY__ */
 
+#include <blk.h>
+
 /* Pull in stuff for the build system */
 #ifdef DO_DEPS_ONLY
 # include <env_internal.h>
 #endif
+
+char *env_get(const char *name);
+int gpt_verify(struct blk_desc *blk_dev_desc, const char *str_part);
+int gpt_default(struct blk_desc *blk_dev_desc, const char *str_part);
+
 
 #endif	/* __COMMON_H_ */

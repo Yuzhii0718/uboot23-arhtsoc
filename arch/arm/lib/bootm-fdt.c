@@ -22,6 +22,9 @@
 #include <asm/global_data.h>
 #include <asm/psci.h>
 #include <asm/spin_table.h>
+#if CONFIG_ARCH_AIROHA
+#include <asm/tc3162.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -50,6 +53,11 @@ int arch_fixup_fdt(void *blob)
 			return ret;
 #endif
 	}
+
+#if CONFIG_ARCH_AIROHA
+		/* set the real dram size and pass it to kernel*/
+		size[0] = ((u64)GET_DRAM_SIZE * (u64)SZ_1M);
+#endif
 
 #ifdef CONFIG_OF_LIBFDT
 	ret = fdt_fixup_memory_banks(blob, start, size, CONFIG_NR_DRAM_BANKS);

@@ -1008,6 +1008,13 @@ config ARCH_OWL
 	select SYS_RELOC_GD_ENV_ADDR
 	imply CMD_DM
 
+config ARCH_AIROHA
+	bool "Airoha SoCs"
+	select DM
+	select OF_CONTROL
+	help
+	  Support for the Airoha soc.
+
 config ARCH_QEMU
 	bool "QEMU Virtual Platform"
 	select DM
@@ -2211,6 +2218,8 @@ source "arch/arm/mach-rmobile/Kconfig"
 source "arch/arm/mach-meson/Kconfig"
 
 source "arch/arm/mach-mediatek/Kconfig"
+
+source "arch/arm/mach-airoha/Kconfig"
 
 source "arch/arm/mach-qemu/Kconfig"
 

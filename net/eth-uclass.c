@@ -452,6 +452,7 @@ int eth_initialize(void)
 
 		if (ethprime)
 			prime_dev = eth_get_dev_by_name(ethprime);
+
 		if (prime_dev) {
 			eth_set_dev(prime_dev);
 			eth_current_changed();

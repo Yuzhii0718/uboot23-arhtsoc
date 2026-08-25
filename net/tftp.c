@@ -309,6 +309,11 @@ static void tftp_complete(void)
 					net_boot_file_size);
 	}
 	net_set_state(NETLOOP_SUCCESS);
+	#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+	 printf(" ---- tftp complete -----\n");
+    env_set("filename", tftp_filename);
+    /* write to flash if tcboot.bin / tclinux.bin is received.*/
+	#endif
 }
 
 static void tftp_send(void)
@@ -593,14 +598,6 @@ static void tftp_handler(uchar *pkt, unsigned dest, struct in_addr sip,
 			      ntohs(*(__be16 *)pkt),
 			      (ushort)(tftp_cur_block + 1));
 			/*
-			 * Only ACK if the block count received is greater than
-			 * the expected block count, otherwise skip ACK.
-			 * (required to properly handle the server retransmitting
-			 *  the window)
-			 */
-			if ((ushort)(tftp_cur_block + 1) - (short)(ntohs(*(__be16 *)pkt)) > 0)
-				break;
-			/*
 			 * If one packet is dropped most likely
 			 * all other buffers in the window
 			 * that will arrive will cause a sending NACK.
@@ -845,7 +842,7 @@ void tftp_start(enum proto_t protocol)
 			e = strchr(net_boot_file_name, ']');
 			len = e - s;
 			if (s && e) {
-				string_to_ip6(s + 1, len - 1, &tftp_remote_ip6);
+				string_to_ip6(s + 1, len, &tftp_remote_ip6);
 				strlcpy(tftp_filename, e + 2, MAX_LEN);
 			} else {
 				strlcpy(tftp_filename, net_boot_file_name, MAX_LEN);

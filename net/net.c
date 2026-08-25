@@ -201,7 +201,9 @@ static ulong	time_start;
 static ulong	time_delta;
 /* THE transmit packet */
 uchar *net_tx_packet;
-
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+extern void ecnt_ImageUpgrade(int fw_type);
+#endif
 static int net_check_prereq(enum proto_t protocol);
 
 static int net_try_count;
@@ -466,9 +468,6 @@ restart:
 	debug_cond(DEBUG_INT_STATE, "--- net_loop Init\n");
 	net_init_loop();
 
-	if (!test_eth_enabled())
-		return 0;
-
 	switch (net_check_prereq(protocol)) {
 	case 1:
 		/* network not configured */
@@ -688,6 +687,9 @@ restart:
 				       net_boot_file_size, net_boot_file_size);
 				env_set_hex("filesize", net_boot_file_size);
 				env_set_hex("fileaddr", image_load_addr);
+				#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+					ecnt_ImageUpgrade(0);
+				#endif
 			}
 			if (protocol != NETCONS && protocol != NCSI)
 				eth_halt();

@@ -116,7 +116,9 @@ enum env_location {
 	ENVL_SPI_FLASH,
 	ENVL_UBI,
 	ENVL_NOWHERE,
-
+	#if defined(CONFIG_UBOOT_ARHT)
+		ENVL_SNAND_FLASH,
+	#endif
 	ENVL_COUNT,
 };
 

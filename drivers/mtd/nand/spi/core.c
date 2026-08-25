@@ -29,6 +29,7 @@
 #include <dm/devres.h>
 #include <linux/bitops.h>
 #include <linux/bug.h>
+#include <linux/mtd/mtk_bmt.h>
 #include <linux/mtd/spinand.h>
 #endif
 
@@ -243,7 +244,13 @@ static int spinand_load_page_op(struct spinand_device *spinand,
 static int spinand_read_from_cache_op(struct spinand_device *spinand,
 				      const struct nand_page_io_req *req)
 {
-	struct spi_mem_op op = *spinand->op_templates.read_cache;
+		
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+	struct spi_mem_op op = SPINAND_PAGE_READ_FROM_CACHE_OP(false, 0, 1, NULL, 0);
+#else
+	struct spi_mem_op op = *spinand->op_templates.read_cache;	
+#endif
+
 	struct nand_device *nand = spinand_to_nand(spinand);
 	struct mtd_info *mtd = nanddev_to_mtd(nand);
 	struct nand_page_io_req adjreq = *req;
@@ -316,7 +323,13 @@ static int spinand_read_from_cache_op(struct spinand_device *spinand,
 static int spinand_write_to_cache_op(struct spinand_device *spinand,
 				     const struct nand_page_io_req *req)
 {
+	
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+	struct spi_mem_op op = SPINAND_PROG_LOAD(true, 0, NULL, 0);
+#else
 	struct spi_mem_op op = *spinand->op_templates.write_cache;
+#endif
+
 	struct nand_device *nand = spinand_to_nand(spinand);
 	struct mtd_info *mtd = nanddev_to_mtd(nand);
 	struct nand_page_io_req adjreq = *req;
@@ -324,6 +337,9 @@ static int spinand_write_to_cache_op(struct spinand_device *spinand,
 	void *buf = NULL;
 	u16 column = 0;
 	int ret;
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+	static short loop_hint = 0;
+#endif
 
 	memset(spinand->databuf, 0xff,
 	       nanddev_page_size(nand) +
@@ -360,7 +376,15 @@ static int spinand_write_to_cache_op(struct spinand_device *spinand,
 
 	spinand_cache_op_adjust_colum(spinand, &adjreq, &column);
 
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+	if (loop_hint++ == 100) {
+		printf(".");
+		loop_hint = 0;
+	}
+#else
 	op = *spinand->op_templates.write_cache;
+#endif
+	
 	op.addr.val = column;
 
 	/*
@@ -391,7 +415,13 @@ static int spinand_write_to_cache_op(struct spinand_device *spinand,
 		 */
 		if (nbytes) {
 			column = op.addr.val;
-			op = *spinand->op_templates.update_cache;
+				
+			#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+				op.cmd.opcode = 0x84;
+			#else
+				op = *spinand->op_templates.update_cache;
+			#endif	
+            
 			op.addr.val = column;
 		}
 	}
@@ -699,7 +729,12 @@ static int spinand_mtd_block_isbad(struct mtd_info *mtd, loff_t offs)
 #ifndef __UBOOT__
 	mutex_unlock(&spinand->lock);
 #endif
-	return ret;
+	
+	#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+		return false;
+	#else
+		return ret;
+	#endif
 }
 
 static int spinand_markbad(struct nand_device *nand, const struct nand_pos *pos)
@@ -1137,7 +1172,9 @@ static void spinand_cleanup(struct spinand_device *spinand)
 	kfree(spinand->databuf);
 	kfree(spinand->scratchbuf);
 }
-
+#if defined(CONFIG_UBOOT_ARHT)
+extern struct nand_device *airoha_nand_ref; 
+#endif
 static int spinand_probe(struct udevice *dev)
 {
 	struct spinand_device *spinand = dev_get_priv(dev);
@@ -1171,9 +1208,26 @@ static int spinand_probe(struct udevice *dev)
 	spinand_set_ofnode(spinand, dev_ofnode(dev));
 #endif
 
+#if defined(CONFIG_UBOOT_ARHT)
+	nand->mtd = mtd;
+	mtd->priv = nand;
+	mtd->dev = dev;
+	mtd->name = malloc(20);
+	if (!mtd->name)
+		return -ENOMEM;
+	sprintf(mtd->name, "spi-nand%d", spi_nand_idx++);
+	spinand->slave = slave;
+	spinand_set_ofnode(spinand, dev_ofnode(dev));
+#endif
+
 	ret = spinand_init(spinand);
 	if (ret)
 		return ret;
+
+#if defined(CONFIG_UBOOT_ARHT)
+	airoha_nand_ref = nand; 
+	mtk_bmt_attach(mtd); // airoha-bmt
+#endif
 
 #ifndef __UBOOT__
 	ret = mtd_device_register(mtd, NULL, 0);

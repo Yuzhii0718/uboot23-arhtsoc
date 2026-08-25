@@ -23,6 +23,20 @@ config HUSH_PARSER
 	  If disabled, you get the old, much simpler behaviour with a somewhat
 	  smaller memory footprint.
 
+config CMD_EFUSE
+	bool "efuse"
+	depends on ARCH_AIROHA
+	default y
+	help
+	  efuse
+	  
+config CMD_BOOTFLAG
+	bool "bootflag"
+	depends on ARCH_AIROHA
+	default y
+	help
+	  bootflag
+
 config CMDLINE_EDITING
 	bool "Enable command line editing"
 	depends on CMDLINE

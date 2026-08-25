@@ -448,8 +448,7 @@ int gpt_fill_pte(struct blk_desc *dev_desc,
 		 * If our partition overlaps with either the GPT
 		 * header, or the partition entry, reject it.
 		 */
-		if (((start < hdr_end && hdr_start < (start + size)) ||
-		     (start < pte_end && pte_start < (start + size)))) {
+		if (start < pte_end && pte_start < (start + size)) {/* modified by tozed, don't check gpt header */
 			log_debug("Partition overlap\n");
 			return -ENOSPC;
 		}
@@ -584,8 +583,7 @@ int gpt_fill_header(struct blk_desc *dev_desc, gpt_header *gpt_h,
 	gpt_h->last_usable_lba = cpu_to_le64(dev_desc->lba - 34);
 	gpt_h->partition_entry_lba =
 		cpu_to_le64(partition_entries_offset(dev_desc));
-	gpt_h->first_usable_lba =
-		cpu_to_le64(le64_to_cpu(gpt_h->partition_entry_lba) + 32);
+	gpt_h->first_usable_lba = cpu_to_le64(0);/* modified by tozed, usable lba start at 0 for bootloader partition */
 	gpt_h->num_partition_entries = cpu_to_le32(GPT_ENTRY_NUMBERS);
 	gpt_h->sizeof_partition_entry = cpu_to_le32(sizeof(gpt_entry));
 	gpt_h->header_crc32 = 0;
