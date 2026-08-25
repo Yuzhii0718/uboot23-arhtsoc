@@ -1227,7 +1227,9 @@ static int spinand_probe(struct udevice *dev)
 
 #if defined(CONFIG_UBOOT_ARHT)
 	airoha_nand_ref = nand; 
-	mtk_bmt_attach(mtd); // airoha-bmt
+	#ifdef UBOOT_ARHT_BMT
+		mtk_bmt_attach(mtd); // airoha-bmt
+	#endif
 #endif
 
 #ifndef __UBOOT__
