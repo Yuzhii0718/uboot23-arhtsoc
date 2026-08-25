@@ -1,0 +1,275 @@
+if ARCH_AIROHA
+
+menu "Airoha specific configurations"
+
+menuconfig BUILD_AIROHA
+	bool "Build Airoha bootloader images"
+	default y
+	help
+	  Enable this to build Airoha bootloader images (FIP, TCBoot, chainloader)
+	  for Airoha SoCs.  This is enabled by default for Airoha boards.
+
+if BUILD_AIROHA
+
+choice
+    prompt "Boot image format"
+	default AIROHA_BUILD_TCBOOT
+	help
+	  Select which boot image format to build.  TCBoot is the legacy
+	  Airoha bootloader format, while FIP is the modern ARM Trusted Firmware
+	  format.  Both formats can be built simultaneously.
+
+	config AIROHA_BUILD_FIP
+		bool "Build modern FIP images (BL2/BL31+U-Boot)"
+		depends on !TARGET_EN7523
+		help
+		Build FIP (Firmware Image Package) images for platforms whose
+		BootROM natively understands FIP (AN7563, AN7581, AN7583).
+		Produces bl31-uboot.fip (and optionally preloader.bin in
+		split layout), named after the OpenWrt artifacts.
+
+	config AIROHA_BUILD_TCBOOT
+		bool "Build TCBoot bootloader image"
+		help
+		Build the 512 KiB tcboot image.  All Airoha platforms support
+		the tcboot layout (BL1 + key area + BL2 + certificates +
+		LZMA-compressed BL31 + U-Boot), so this is enabled by default
+		everywhere and can be combined with AIROHA_BUILD_FIP.
+
+	config AIROHA_BUILD_CHAINLOADER
+		bool "Build Chainloader FIT and slot images"
+		help
+		Build the chainloader images for AN7581-family boards.  The
+		chainloader lets a board boot a secondary U-Boot from the
+		chainloader flash partition.
+		
+		- OpenWrt-style chainload FIT: a plain FIT whose kernel
+			is the LZMA-compressed u-boot.bin.lzma (fallback: uncompressed
+			u-boot.bin) together with u-boot.dtb, generated with
+			tools/mkits.sh + mkimage, exactly like the OpenWrt
+			Build/an7581-chainloader step.  Output:
+			<board>-chainload-uboot.itb
+
+endchoice
+
+if AIROHA_BUILD_FIP
+
+config AIROHA_FIP_LEGACY
+	bool "Enable legacy single-FIP layout (BL2+BL31+U-Boot, 1024-aligned)"
+	default y if TARGET_AN7552
+	help
+	  Pack the BL2 + BL31 + U-Boot single self-contained FIP with
+	  1024-byte alignment (the same internal FIP shared with the
+	  tcboot build) and assemble it into bl2-bl31-uboot.bin with a
+	  2 KiB zero prefix.  This matches the layout expected by
+	  AN7563 BootROM.
+
+	  When disabled, bl31-uboot.fip contains only BL31 + U-Boot
+	  (split layout), and a separate preloader.bin must be provided.
+
+endif # AIROHA_BUILD_FIP
+
+if AIROHA_BUILD_TCBOOT
+
+config AIROHA_BOOTEXT_RAM
+	bool "Build bootext.ram recovery FIP image"
+	default y
+	help
+	  Build the bootext.ram FIP recovery image used by BL2 for XMODEM
+	  firmware update ("Press x to update firmware").  The image is a
+	  minimal FIP containing only BL2 and optionally the trusted-boot
+	  firmware certificate, packed by tools/airoha_pack_bootext.py.
+
+if AIROHA_BOOTEXT_RAM
+
+config AIROHA_BOOTEXT_EMBED_CERTS
+	bool "Embed TF-A certificates into bootext.ram"
+	default n
+	help
+	  Whether to pack TF-A trusted-boot certificates (extracted from
+	  certificates.bin) into the bootext.ram recovery FIP image.
+
+	  When enabled, one or more certificates are appended to BL2 so
+	  BootROM can verify the chain of trust during XMODEM recovery.
+	  When disabled, bootext.ram contains only BL2 — useful for
+	  boards that do not enforce secure boot.
+
+config AIROHA_BOOTEXT_CERT_COUNT
+	int "Number of certificates packed into bootext.ram"
+	depends on AIROHA_BOOTEXT_EMBED_CERTS
+	default 1 if TARGET_EN7523
+	default 6
+	help
+	  Number of TF-A certificates to include in the bootext.ram
+	  recovery FIP image.  SoCs with a full TF-A certificate chain
+	  (AN7563, AN7581, AN7583) use 6 certs; all others use a single
+	  Trusted Boot FW Certificate.
+
+	  When set to 1, only the first certificate (cert_01.der) is
+	  packed.  When greater than 1, all extracted certificates are
+	  included.  The --expected parameter passed to the extraction
+	  tool equals this value.
+
+endif # AIROHA_BOOTEXT_RAM
+
+endif # AIROHA_BUILD_TCBOOT
+
+config AIROHA_SOC_NAME
+	string "Airoha SoC name"
+	depends on AIROHA_BUILD_FIP || AIROHA_BUILD_TCBOOT
+	default "en7523" if TARGET_EN7523
+	default "an7581" if TARGET_AN7581
+	default "an7552" if TARGET_AN7552
+	default "an7583" if TARGET_AN7583
+	help
+	  SoC name used by tools/build_airoha/ to locate the directory of
+	  prebuilt binaries (legacy/<soc>_default/ or openwrt/<soc>_default/).
+
+	  This is independent of CONFIG_SYS_SOC, which stays "airoha" so that
+	  all Airoha SoCs can share the arch-airoha header directory through
+	  the asm/arch symlink.
+
+config AIROHA_FIP_BLOBS_DIR
+	string "Override prebuilt binaries directory"
+	depends on AIROHA_BUILD_FIP || AIROHA_BUILD_TCBOOT
+	help
+	  Override the per-SoC subdirectory under tools/build_airoha/ where
+	  prebuilt BL1/BL2/BL31 binaries are located.  By default the
+	  Makefile uses <soc>_default.
+
+	  Set this to a custom directory name when a specific board requires
+	  its own dedicated binary images that differ from the generic SoC
+	  binaries.
+
+if AIROHA_BUILD_CHAINLOADER
+
+config AIROHA_CHAINLOADER_BOARD
+	string "Chainloader board name (OpenWrt method)"
+	help
+	  Board name used by the OpenWrt-style chainload FIT method for
+	  the output filename (<board>-chainload-uboot.itb).
+
+endif # AIROHA_BUILD_CHAINLOADER
+
+endif # BUILD_AIROHA
+
+menu "Airoha Failsafe Web recovery"
+
+config AIROHA_WEB_FAILSAFE
+	bool "Enable failsafe Web recovery"
+	select WEBUI_FAILSAFE
+	help
+	  Enable the Airoha failsafe Web recovery feature.
+
+menuconfig AIROHA_FAILSAFE_VALIDATE
+	bool "Enable failsafe image validation"
+	depends on AIROHA_WEB_FAILSAFE
+	help
+	  Master switch for all structural image validation performed by
+	  the failsafe Web recovery before flashing (failsafe_validate.c).
+
+	  When enabled (default), each uploaded image is checked against
+	  its format (FIP ToC / BL2 preloader / FIT / legacy uImage) and
+	  the generic capacity checks (the image, including the BL2 write
+	  offset, must fit inside the target MTD partition or the 'fip'
+	  UBI volume).  The per-image-type checks below can then be
+	  enabled or disabled individually.
+
+	  When disabled, no structural validation is performed at all:
+	  uploaded images are flashed as-is (only the empty-image check
+	  in failsafe.c remains).
+
+	  Independently of this compile-time switch, the runtime
+	  environment variable "failsafe_validate" can disable the
+	  structural validation on a running device (set it to 0/no);
+	  the generic storage capacity checks are always performed.
+
+if AIROHA_FAILSAFE_VALIDATE
+
+config AIROHA_FAILSAFE_VALIDATE_UBOOT
+	bool "Validate 'u-boot' (tcboot / FIP-legacy) images"
+	depends on AIROHA_BUILD_TCBOOT || AIROHA_FIP_LEGACY
+	default y
+	help
+	  Structurally validate uploaded 'u-boot' images before they are
+	  flashed.  The 'u-boot' MTD partition holds one of two layouts,
+	  depending on the build mode:
+	    - tcboot: BL1 @0x0 + internal FIP @0x800 (FIP ToC magic
+	      0xAA640001 at offset 0x800),
+	    - FIP-legacy (e.g. AN7563, CONFIG_AIROHA_FIP_LEGACY): a
+	      single self-contained FIP (BL2 + BL31 + U-Boot) starting
+	      at offset 0, i.e. a tcboot without the BL1 prefix (FIP ToC
+	      magic at offset 0).
+
+	  Both layouts carry the whole boot chain in one image, so this
+	  check inherently covers BL2 as well; no separate 'bl2' option
+	  exists in these modes.
+
+	  The image size is bounded by the generic MTD partition capacity
+	  check (must fit the 'u-boot' partition, no fixed size limit).
+
+config AIROHA_FAILSAFE_VALIDATE_BL2
+	bool "Validate 'bl2' (preloader) images"
+	depends on AIROHA_BUILD_FIP
+	default y
+	help
+	  Structurally validate uploaded 'bl2' images before they are
+	  flashed.  Only meaningful in FIP mode, where BL2 lives in its
+	  own partition.  The flashed image is preloader.bin, produced by
+	  'fiptool create --tb-fw bl2.bin preloader.bin', i.e. a FIP
+	  container wrapping the raw preloader:
+	    - size >= 0x4000,
+	    - FIP container: ToC magic 0xAA640001 and a BL2 payload entry
+	      fully contained in the image,
+	    - bare preloader (legacy bootext images): LZMA-layout deep
+	      check - stage-1 (BL21) region not blank and the no-final-XOR
+	      CRC32 stored in the last 4 bytes covers the whole image
+	      (ALWAYS performed, no separate CRC option).
+
+config AIROHA_FAILSAFE_VALIDATE_FIP
+	bool "Validate 'fip' images"
+	depends on AIROHA_BUILD_FIP
+	default y
+	help
+	  Structurally validate uploaded 'fip' (UBI static volume) images
+	  before they are flashed: FIP ToC magic 0xAA640001 at offset 0
+	  and a sane minimum header size.
+
+config AIROHA_FAILSAFE_VALIDATE_CHAINLOADER
+	bool "Validate 'chainloader' images"
+	depends on AIROHA_BUILD_CHAINLOADER && FIT
+	default y
+	help
+	  Validate uploaded 'chainloader' images before they are flashed.
+	  The chainloader partition holds one of two formats, depending
+	  on the board build method:
+	    - OpenWrt-style FIT: FIT checker (fit_check_format),
+	    - shim-based legacy uImage: header CRC + payload CRC.
+	  The image size is bounded by the generic MTD partition capacity
+	  check (must fit the 'chainloader' partition, no fixed size
+	  limit).
+
+config AIROHA_FAILSAFE_VALIDATE_FIRMWARE
+	bool "Validate 'firmware' images"
+	default y
+	depends on FIT
+	help
+	  Validate uploaded 'firmware' images (OpenWrt kernel/rootfs FIT,
+	  UBI volume) with the FIT checker (fit_check_format) before
+	  they are flashed.
+
+endif # AIROHA_FAILSAFE_VALIDATE
+
+endmenu # Airoha Failsafe Web recovery
+
+config AIROHA_DEFAULT_FIT_BOOT_CONF
+	string "Default boot configuration of FIT image"
+	default ""
+	help
+	  FIT image can store multiple boot configuration to allow one sinle
+	  FIT image to be used on multiple boards.
+	  If left empty, the default one specified in FIT will be used.
+
+endmenu # Airoha specific configurations
+
+endif # ARCH_AIROHA

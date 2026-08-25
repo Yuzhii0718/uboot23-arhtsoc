@@ -1,0 +1,442 @@
+========================================================================================================================
+  Airoha SoC BL2/BL31 Firmware Build Information Log
+========================================================================================================================
+  Generated:    2026-09-09 12:58:11
+  Scanned dir:  tools/build_airoha
+  BL2 files:    8   BL31 files: 8   (legacy: 5/5, openwrt: 3/3)
+
+========================================================================================================================
+  [OVERVIEW] BL2 (Preloader) Build Information - Legacy (SDK)
+========================================================================================================================
+  Variant                    Version        Build Date               DRAMC Ver              Mode     File Size            Status  
+  --------------------------------------------------------------------------------------------------------------------------------
+  an7552_default             v2.3(cf74ec3)  14:50:05, Jan 30 2024    AN7552DRAMC V0.4       lzma     110100 bytes (0x1ae14) VALID   
+  an7581_default             v2.3           16:38:10, Apr  8 2024    AN7581DRAMC V0.9       lzma     115093 bytes (0x1c195) VALID   
+  an7583_default             v2.3           20:29:59, Dec  2 2024    AN7583DRAMC V0.6       lzma     115117 bytes (0x1c1ad) VALID   
+  en7523_default             v2.3           23:10:14, Feb 22 2023    EN7523DRAMC V0.2       struct   119714 bytes (0x1d3a2) VALID   
+  en7562_default             v2.3           13:16:51, Oct 18 2023    EN7523DRAMC V0.6       struct   119478 bytes (0x1d2b6) VALID   
+
+========================================================================================================================
+  [OVERVIEW] BL31 (ARM Trusted Firmware) Build Information - Legacy (SDK)
+========================================================================================================================
+  Variant                    Version                      Build Date               Format         File Size                Status  
+  ---------------------------------------------------------------------------------------------------------------------------------
+  an7552_default             v2.3():cf74ec3-dirty         14:50:22, Jan 30 2024    LZMA compressed 41984 bytes (0xa400) -> 99864 bytes (0x18618) VALID   
+  an7581_default             v2.3():                      16:38:47, Apr  8 2024    LZMA compressed 40960 bytes (0xa000) -> 95235 bytes (0x17403) VALID   
+  an7583_default             v2.3():                      12:04:54, Nov  7 2024    LZMA compressed 43008 bytes (0xa800) -> 99905 bytes (0x18641) VALID   
+  en7523_default             v2.1(release):               09:55:09, Dec  8 2021    LZMA compressed 13312 bytes (0x3400) -> 28800 bytes (0x7080) VALID   
+  en7562_default             v2.3():V7_3_283_650_verify_20220426_v002-dirty 16:31:55, Jun  2 2022    LZMA compressed 39936 bytes (0x9c00) -> 91139 bytes (0x16403) VALID   
+
+========================================================================================================================
+  [OVERVIEW] BL2 (Preloader) Build Information - OpenWrt
+========================================================================================================================
+  Variant                    Version        Build Date               DRAMC Ver              Mode     File Size            Status  
+  --------------------------------------------------------------------------------------------------------------------------------
+  an7552_default             v2.3(50866bc)  16:15:16, Feb 20 2024    AN7552DRAMC V0.4       lzma     110104 bytes (0x1ae18) VALID   
+  an7581_default             v2.10.0(release,d4c4d1f) 21:06:36, Sep  5 2026    AN7581DRAMC V1.0       lzma     113452 bytes (0x1bb2c) VALID   
+  an7583_default             v2.10.0(release,d4c4d1f) 21:06:49, Sep  5 2026    AN7583DRAMC V0.9       lzma     119720 bytes (0x1d3a8) VALID   
+
+========================================================================================================================
+  [OVERVIEW] BL31 (ARM Trusted Firmware) Build Information - OpenWrt
+========================================================================================================================
+  Variant                    Version                      Build Date               Format         File Size                Status  
+  ---------------------------------------------------------------------------------------------------------------------------------
+  an7552_default             v2.3():50866bc               16:15:38, Feb 20 2024    LZMA compressed 41522 bytes (0xa232) -> 99864 bytes (0x18618) VALID   
+  an7581_default             v2.10.0 (release:d4c4d1f)    21:06:41, Sep  5 2026    LZMA compressed 44838 bytes (0xaf26) -> 104259 bytes (0x19743) VALID   
+  an7583_default             v2.10.0 (release:d4c4d1f)    21:06:54, Sep  5 2026    LZMA compressed 55243 bytes (0xd7cb) -> 132961 bytes (0x20761) VALID   
+
+========================================================================================================================
+  [DETAIL] Grouped by Release Group and Platform
+========================================================================================================================
+
+------------------------------------------------------------------------------------------------------------------------
+  Release Group: Legacy (SDK) (legacy/)
+------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------
+  Platform: an7552_default
+------------------------------------------------------------------------------------------------------------------------
+
+  --- BL2: bl2.bin ---
+    File path:  legacy/an7552_default/bl2.bin
+    Version:    v2.3 (commit: cf74ec3)
+    Build Date: 14:50:05, Jan 30 2024
+    Detected Chip: an7563
+    Mode:       lzma
+    File Size:  110100 bytes (0x1ae14)
+    DRAMC:      AN7552DRAMC V0.4
+    Supported DRAM Types:
+      - dram_type = PCDDR3, data_rate = %d
+      - dram_type = PCDDR4, data_rate = %d
+    Hashes:
+      MD5:    d80440ccede3e3db6f8aac6e3171984f
+      SHA256: e035923a749058c41b490204499c591db4dde4787f0e8f326096f9a9160f48da
+      CRC32:  0xFFFFFFFF
+    Validation:
+      OK: file size 110100 bytes (>= 0x4000)
+      OK: BL22 stream decompressed (98921 bytes)
+      OK: BL23 stream decompressed (74526 bytes)
+      OK: flash table stream decompressed (20960 bytes, 60 entries)
+      OK: layout continuous (stage1+hdr+BL22+BL23+ft ends at file_size-4)
+      OK: trailing CRC32 (no-final-XOR) matches (0x8965FC59)
+      OK: stage-1 BL21 region non-empty (8042/14336 non-zero bytes)
+    Status:     VALID
+
+  --- BL31: bl31.lzma ---
+    File path:  legacy/an7552_default/bl31.lzma
+    Version:    v2.3():cf74ec3-dirty
+    Build Date: 14:50:22, Jan 30 2024
+    Format:     LZMA compressed
+    Compressed: 41984 bytes (0xa400)
+    Decompressed: 99864 bytes (0x18618)
+    Hashes:
+      MD5:    a4bd0d90a024f2a7477332aa11e0ea83
+      SHA256: 9ffc1d9bdf05162f1d0be77c05c6c728614e93720b5c0917aa464ee7a73fdf12
+      CRC32:  0xCACF979A
+    Decompressed Hashes:
+      MD5:    8ab00e33670d64d852ae809218d74ed8
+      SHA256: d77d9e8c7b6b829e842eed572c3b66b6c86dd7c420dc8129adb59b67a72745f5
+      CRC32:  0x9145CE8B
+    Validation:
+      OK: file size 41984 bytes (>= 0x100)
+      OK: LZMA stream (props=0x5D) decompressed (99864 bytes)
+    Status:     VALID
+
+------------------------------------------------------------------------------------------------------------------------
+  Platform: an7581_default
+------------------------------------------------------------------------------------------------------------------------
+
+  --- BL2: bl2.bin ---
+    File path:  legacy/an7581_default/bl2.bin
+    Version:    v2.3
+    Build Date: 16:38:10, Apr  8 2024
+    Detected Chip: an7581
+    Mode:       lzma
+    File Size:  115093 bytes (0x1c195)
+    DRAMC:      AN7581DRAMC V0.9
+    Supported DRAM Types:
+      - dram_type = PCDDR3, data_rate = %d
+      - dram_type = PCDDR4, data_rate = %d
+    Hashes:
+      MD5:    c6330ea8cd2138d65c61eeeb89943cc4
+      SHA256: 94bb3b29d1dae41aac635ef80bb6d4957c5c1a5246e6d3b88947f4a9a236c599
+      CRC32:  0xFFFFFFFF
+    Validation:
+      OK: file size 115093 bytes (>= 0x4000)
+      OK: BL22 stream decompressed (98920 bytes)
+      OK: BL23 stream decompressed (95049 bytes)
+      OK: flash table stream decompressed (19924 bytes, 57 entries)
+      OK: layout continuous (stage1+hdr+BL22+BL23+ft ends at file_size-4)
+      OK: trailing CRC32 (no-final-XOR) matches (0xF252C7CD)
+      OK: stage-1 BL21 region non-empty (8079/14336 non-zero bytes)
+    Status:     VALID
+
+  --- BL31: bl31.lzma ---
+    File path:  legacy/an7581_default/bl31.lzma
+    Version:    v2.3():
+    Build Date: 16:38:47, Apr  8 2024
+    Format:     LZMA compressed
+    Compressed: 40960 bytes (0xa000)
+    Decompressed: 95235 bytes (0x17403)
+    Hashes:
+      MD5:    fec508eb15e2b08df6dae6c86c7e5d6f
+      SHA256: 488ac7d9b7e2d14ae4dc329c4b85334206de8f55dd9c7cc7f550515ff1f06460
+      CRC32:  0xD3D9A48E
+    Decompressed Hashes:
+      MD5:    a43734ac9a8b2beff0993b80d78ebeb7
+      SHA256: 99dd5dcd3198184c61d44b0e8de0024ea76bd472e501f818a5c14d19f4375999
+      CRC32:  0x12846426
+    Validation:
+      OK: file size 40960 bytes (>= 0x100)
+      OK: LZMA stream (props=0x5D) decompressed (95235 bytes)
+    Status:     VALID
+
+------------------------------------------------------------------------------------------------------------------------
+  Platform: an7583_default
+------------------------------------------------------------------------------------------------------------------------
+
+  --- BL2: bl2.bin ---
+    File path:  legacy/an7583_default/bl2.bin
+    Version:    v2.3
+    Build Date: 20:29:59, Dec  2 2024
+    Detected Chip: an7583
+    Mode:       lzma
+    File Size:  115117 bytes (0x1c1ad)
+    DRAMC:      AN7583DRAMC V0.6
+    Supported DRAM Types:
+      - dram_type = PCDDR3, data_rate = %d
+      - dram_type = PCDDR4, data_rate = %d
+    Hashes:
+      MD5:    f7e9c26bff10b4f91bde10ecddf61741
+      SHA256: 06ac1a99a8064066ef352369c21582778624845794b2e74cca718da4ba4597bc
+      CRC32:  0xFFFFFFFF
+    Validation:
+      OK: file size 115117 bytes (>= 0x4000)
+      OK: BL22 stream decompressed (98937 bytes)
+      OK: BL23 stream decompressed (95049 bytes)
+      OK: flash table stream decompressed (19924 bytes, 57 entries)
+      OK: layout continuous (stage1+hdr+BL22+BL23+ft ends at file_size-4)
+      OK: trailing CRC32 (no-final-XOR) matches (0x92F3DBE3)
+      OK: stage-1 BL21 region non-empty (8079/14336 non-zero bytes)
+    Status:     VALID
+
+  --- BL31: bl31.lzma ---
+    File path:  legacy/an7583_default/bl31.lzma
+    Version:    v2.3():
+    Build Date: 12:04:54, Nov  7 2024
+    Format:     LZMA compressed
+    Compressed: 43008 bytes (0xa800)
+    Decompressed: 99905 bytes (0x18641)
+    Hashes:
+      MD5:    de6cbb400a63e6db63a31d7614e93c21
+      SHA256: 72cf2b1585d8703108e7946050d51703a812e658cb32a7db8c218b2ea958db34
+      CRC32:  0x10E69D03
+    Decompressed Hashes:
+      MD5:    8c93f1829e33c2ab80578dc563c3cafa
+      SHA256: c8055694fa9a0b429eade90066ac35c6602186d58299edcdf033eab8ad81e351
+      CRC32:  0xE3D790A1
+    Validation:
+      OK: file size 43008 bytes (>= 0x100)
+      OK: LZMA stream (props=0x5D) decompressed (99905 bytes)
+    Status:     VALID
+
+------------------------------------------------------------------------------------------------------------------------
+  Platform: en7523_default
+------------------------------------------------------------------------------------------------------------------------
+
+  --- BL2: bl2.bin ---
+    File path:  legacy/en7523_default/bl2.bin
+    Version:    v2.3
+    Build Date: 23:10:14, Feb 22 2023
+    Detected Chip: en7523
+    Mode:       struct
+    File Size:  119714 bytes (0x1d3a2)
+    DRAMC:      EN7523DRAMC V0.2
+    Supported DRAM Types:
+      - dram_type = 
+    Hashes:
+      MD5:    11d4e05d924775aed4d8fe9e9fe507ae
+      SHA256: 57213e811a146d07628e947fd48abd3e5a400e317f547bbe75f516994260bd0a
+      CRC32:  0x39A2F615
+    Validation:
+      OK: file size 119714 bytes (>= 0x4000)
+      OK: struct layout parsed, 7 build/version strings
+    Status:     VALID
+
+  --- BL31: bl31.lzma ---
+    File path:  legacy/en7523_default/bl31.lzma
+    Version:    v2.1(release):
+    Build Date: 09:55:09, Dec  8 2021
+    Format:     LZMA compressed
+    Compressed: 13312 bytes (0x3400)
+    Decompressed: 28800 bytes (0x7080)
+    Hashes:
+      MD5:    90b342f80e4c10892597cbc927848e2a
+      SHA256: eed82ec244ed88f3ff17710b5c9a6dea8a71448ec2c32ca7b6089db1c70972cc
+      CRC32:  0x286875B5
+    Decompressed Hashes:
+      MD5:    3ab03f24ac58ab3b71ead9fd9435ee37
+      SHA256: f95408e879e3110b5c71ac24a4f3a6be98a2994ba8f701b5baca184ade0a0498
+      CRC32:  0x2382AC99
+    Validation:
+      OK: file size 13312 bytes (>= 0x100)
+      OK: LZMA stream (props=0x5D) decompressed (28800 bytes)
+    Status:     VALID
+
+------------------------------------------------------------------------------------------------------------------------
+  Platform: en7562_default
+------------------------------------------------------------------------------------------------------------------------
+
+  --- BL2: bl2.bin ---
+    File path:  legacy/en7562_default/bl2.bin
+    Version:    v2.3
+    Build Date: 13:16:51, Oct 18 2023
+    Detected Chip: en7562
+    Mode:       struct
+    File Size:  119478 bytes (0x1d2b6)
+    DRAMC:      EN7523DRAMC V0.6
+    Supported DRAM Types:
+      - dram_type = 
+    Hashes:
+      MD5:    d5e0576693c7b638b172ccd22522cea6
+      SHA256: 19dd52bf34b5b2729a08c5fda88c168b028f0af7cf6a5e83456107be672dedf5
+      CRC32:  0xCB539E22
+    Validation:
+      OK: file size 119478 bytes (>= 0x4000)
+      OK: struct layout parsed, 7 build/version strings
+    Status:     VALID
+
+  --- BL31: bl31.lzma ---
+    File path:  legacy/en7562_default/bl31.lzma
+    Version:    v2.3():V7_3_283_650_verify_20220426_v002-dirty
+    Build Date: 16:31:55, Jun  2 2022
+    Format:     LZMA compressed
+    Compressed: 39936 bytes (0x9c00)
+    Decompressed: 91139 bytes (0x16403)
+    Hashes:
+      MD5:    7690012f531645bd280b128d08c52bca
+      SHA256: 407af46fbcbc98159999c39450c212e28babfa601898bc669c6af08a5081411d
+      CRC32:  0x1D3810A2
+    Decompressed Hashes:
+      MD5:    801bf05694a7c3dc79e9a0c079f344f5
+      SHA256: 872077e89c7f71a9893900cc9dfcefa2046546a8bf35fe31e3249866417716eb
+      CRC32:  0x93EE0197
+    Validation:
+      OK: file size 39936 bytes (>= 0x100)
+      OK: LZMA stream (props=0x5D) decompressed (91139 bytes)
+    Status:     VALID
+
+------------------------------------------------------------------------------------------------------------------------
+  Release Group: OpenWrt (openwrt/)
+------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------
+  Platform: an7552_default
+------------------------------------------------------------------------------------------------------------------------
+
+  --- BL2: bl2.bin ---
+    File path:  openwrt/an7552_default/bl2.bin
+    Version:    v2.3 (commit: 50866bc)
+    Build Date: 16:15:16, Feb 20 2024
+    Detected Chip: an7563
+    Mode:       lzma
+    File Size:  110104 bytes (0x1ae18)
+    DRAMC:      AN7552DRAMC V0.4
+    Supported DRAM Types:
+      - dram_type = PCDDR3, data_rate = %d
+      - dram_type = PCDDR4, data_rate = %d
+    Hashes:
+      MD5:    1f7ba4fd17949d236042229111c7f524
+      SHA256: 6f9c927f8b0fc8c7188ec03dfd03cde6f1f614c6bca9a544c54ab51a5de3481a
+      CRC32:  0xFFFFFFFF
+    Validation:
+      OK: file size 110104 bytes (>= 0x4000)
+      OK: BL22 stream decompressed (98921 bytes)
+      OK: BL23 stream decompressed (74526 bytes)
+      OK: flash table stream decompressed (19572 bytes, 56 entries)
+      OK: layout continuous (stage1+hdr+BL22+BL23+ft ends at file_size-4)
+      OK: trailing CRC32 (no-final-XOR) matches (0x6CE6164B)
+      OK: stage-1 BL21 region non-empty (8036/14336 non-zero bytes)
+    Status:     VALID
+
+  --- BL31: bl31.lzma ---
+    File path:  openwrt/an7552_default/bl31.lzma
+    Version:    v2.3():50866bc
+    Build Date: 16:15:38, Feb 20 2024
+    Format:     LZMA compressed
+    Compressed: 41522 bytes (0xa232)
+    Decompressed: 99864 bytes (0x18618)
+    Hashes:
+      MD5:    d57f5152889c5777839a711f9ff19725
+      SHA256: c1e9f4bad15dda4e419b1cafcbfe34bb72a990f088aafc2b12d05e9419ec45f8
+      CRC32:  0x8F44677A
+    Decompressed Hashes:
+      MD5:    1bbdc9de3ebd352fd9db113c4cf9363a
+      SHA256: 4784e31b517ceaeeb059a90f3e16b534f681a1853edb9f4a35841678c0c9e0a5
+      CRC32:  0x2312ED50
+    Validation:
+      OK: file size 41522 bytes (>= 0x100)
+      OK: LZMA stream (props=0x5D) decompressed (99864 bytes)
+    Status:     VALID
+
+------------------------------------------------------------------------------------------------------------------------
+  Platform: an7581_default
+------------------------------------------------------------------------------------------------------------------------
+
+  --- BL2: bl2.bin ---
+    File path:  openwrt/an7581_default/bl2.bin
+    Version:    v2.10.0 (release, commit: d4c4d1f)
+    Build Date: 21:06:36, Sep  5 2026
+    Detected Chip: an7583
+    Mode:       lzma
+    File Size:  113452 bytes (0x1bb2c)
+    DRAMC:      AN7581DRAMC V1.0
+    Supported DRAM Types:
+      - dram_type = PCDDR3, data_rate = %d
+      - dram_type = PCDDR4, data_rate = %d
+    Hashes:
+      MD5:    1dc311b5a6cbb1b8585ce1ca18e5c710
+      SHA256: fe12d728d54dc8d40c171452444a81ee80b18ccf3caaae07cf5efadf5f1a14a8
+      CRC32:  0xFFFFFFFF
+    Validation:
+      OK: file size 113452 bytes (>= 0x4000)
+      OK: BL22 stream decompressed (103020 bytes)
+      OK: BL23 stream decompressed (74460 bytes)
+      OK: flash table stream decompressed (19572 bytes, 58 entries)
+      OK: layout continuous (stage1+hdr+BL22+BL23+ft ends at file_size-4)
+      OK: trailing CRC32 (no-final-XOR) matches (0x93E316D5)
+      OK: stage-1 BL21 region non-empty (7760/14336 non-zero bytes)
+    Status:     VALID
+
+  --- BL31: bl31.lzma ---
+    File path:  openwrt/an7581_default/bl31.lzma
+    Version:    v2.10.0 (release:d4c4d1f)
+    Build Date: 21:06:41, Sep  5 2026
+    Format:     LZMA compressed
+    Compressed: 44838 bytes (0xaf26)
+    Decompressed: 104259 bytes (0x19743)
+    Hashes:
+      MD5:    03947db1f2e4163def2b988372a916dc
+      SHA256: 3ecb89d0fe67ab6f451ae2383fcbfef9e7de543fed3808043c784c320eae0f57
+      CRC32:  0x85013840
+    Decompressed Hashes:
+      MD5:    d7fca5c7ff5e4bab87a28b239d2a7631
+      SHA256: 3cde6025c687a7929c52377c9dc589bb10798df2c6ef0d991d19bcea4af5eb54
+      CRC32:  0x40EE234F
+    Validation:
+      OK: file size 44838 bytes (>= 0x100)
+      OK: LZMA stream (props=0x5D) decompressed (104259 bytes)
+    Status:     VALID
+
+------------------------------------------------------------------------------------------------------------------------
+  Platform: an7583_default
+------------------------------------------------------------------------------------------------------------------------
+
+  --- BL2: bl2.bin ---
+    File path:  openwrt/an7583_default/bl2.bin
+    Version:    v2.10.0 (release, commit: d4c4d1f)
+    Build Date: 21:06:49, Sep  5 2026
+    Detected Chip: an7583
+    Mode:       lzma
+    File Size:  119720 bytes (0x1d3a8)
+    DRAMC:      AN7583DRAMC V0.9
+    Supported DRAM Types:
+      - dram_type = PCDDR3, data_rate = %d
+      - dram_type = PCDDR4, data_rate = %d
+    Hashes:
+      MD5:    da794814f88c2e0be907d79a04a1507e
+      SHA256: dafcbae8fc60a3bda1c72ac82387d9ffdd359433f92b73bb93425d7517dbe05a
+      CRC32:  0xFFFFFFFF
+    Validation:
+      OK: file size 119720 bytes (>= 0x4000)
+      OK: BL22 stream decompressed (103041 bytes)
+      OK: BL23 stream decompressed (86752 bytes)
+      OK: flash table stream decompressed (19572 bytes, 58 entries)
+      OK: layout continuous (stage1+hdr+BL22+BL23+ft ends at file_size-4)
+      OK: trailing CRC32 (no-final-XOR) matches (0x7E9C25E4)
+      OK: stage-1 BL21 region non-empty (7760/14336 non-zero bytes)
+    Status:     VALID
+
+  --- BL31: bl31.lzma ---
+    File path:  openwrt/an7583_default/bl31.lzma
+    Version:    v2.10.0 (release:d4c4d1f)
+    Build Date: 21:06:54, Sep  5 2026
+    Format:     LZMA compressed
+    Compressed: 55243 bytes (0xd7cb)
+    Decompressed: 132961 bytes (0x20761)
+    Hashes:
+      MD5:    af4d51470962e3b8c756d04019e933c6
+      SHA256: 20e3ed2c37fa78812505b0d14f8fae3270c813a2a38dff3dd1265843f0b9618f
+      CRC32:  0xE000A15D
+    Decompressed Hashes:
+      MD5:    9bf4a8722da6b950742d04c50c7daab6
+      SHA256: f84bc731fddc692dbb3bf9a5ba7701c3fff7251832dfb494666b95a729ce7e41
+      CRC32:  0x8B48A7EF
+    Validation:
+      OK: file size 55243 bytes (>= 0x100)
+      OK: LZMA stream (props=0x5D) decompressed (132961 bytes)
+    Status:     VALID
+
+========================================================================================================================
+  End of Log
+========================================================================================================================

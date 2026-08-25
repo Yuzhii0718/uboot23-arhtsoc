@@ -1731,6 +1731,68 @@ quiet_cmd_endian_swap = SWAP    $@
 u-boot-swap.bin: u-boot.bin FORCE
 	$(call if_changed,endian_swap)
 
+# Airoha-specific build targets
+ifeq ($(CONFIG_ARCH_AIROHA),y)
+
+# Airoha FIP / TCBOOT image build
+ifeq ($(CONFIG_AIROHA_BUILD_FIP),y)
+PHONY += airoha_fip preloader.bin bl31-uboot.fip tcboot.bin
+airoha_fip: u-boot.bin
+	@echo "  [AIROHA] Building FIP/TCBOOT images (tools/build_airoha)..."
+	$(MAKE) -C $(srctree)/tools/build_airoha
+
+# Artifact names match OpenWrt (preloader.bin, bl31-uboot.fip); the old
+# 'bl2.fip'/'u-boot.fip' spellings are kept as aliases for compatibility.
+preloader.bin: airoha_fip
+bl31-uboot.fip: airoha_fip
+bl2.fip: airoha_fip
+u-boot.fip: airoha_fip
+
+all: preloader.bin bl31-uboot.fip
+
+ifeq ($(CONFIG_AIROHA_BUILD_TCBOOT),y)
+tcboot.bin: airoha_fip
+all: tcboot.bin
+endif
+
+else ifeq ($(CONFIG_AIROHA_BUILD_TCBOOT),y)
+# EN7523 family: tcboot-only build (no modern FIP)
+PHONY += airoha_fip tcboot.bin
+airoha_fip: u-boot.bin
+	@echo "  [AIROHA] Building TCBOOT image (tools/build_airoha)..."
+	$(MAKE) -C $(srctree)/tools/build_airoha
+
+tcboot.bin: airoha_fip
+all: tcboot.bin
+
+else  # !CONFIG_AIROHA_BUILD_FIP && !CONFIG_AIROHA_BUILD_TCBOOT
+
+# Non-FIP Airoha build: produce LZMA-compressed u-boot.bin.lzma
+# Prefer the LZMA SDK encoder (lzma -c) over xz so the output carries the
+# real uncompressed size in the header (same rule as tools/build_airoha's
+# LZMA_E), keeping it decompressible by the Airoha BL2.
+quiet_cmd_airoha_lzma = LZMA    $@
+      cmd_airoha_lzma = (lzma -c $< || xz --format=lzma --stdout $<) > $@
+
+u-boot.bin.lzma: u-boot.bin
+	$(call if_changed,airoha_lzma)
+
+all: u-boot.bin.lzma
+
+endif  # CONFIG_AIROHA_BUILD_FIP
+
+# Airoha chainloader image build (independent of FIP / TCBOOT)
+ifeq ($(CONFIG_AIROHA_BUILD_CHAINLOADER),y)
+PHONY += airoha_chainloader
+airoha_chainloader: u-boot.bin
+	@echo "  [AIROHA] Building chainloader images (tools/build_airoha)..."
+	$(MAKE) -C $(srctree)/tools/build_airoha
+
+all: airoha_chainloader
+endif
+
+endif  # CONFIG_ARCH_AIROHA
+
 ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(ARCH)/Makefile.postlink)
 
 # Generate linker list symbols references to force compiler to not optimize
@@ -2193,7 +2255,9 @@ CLEAN_FILES += include/bmp_logo.h include/bmp_logo_data.h \
 	       mkimage-out.spl.mkimage mkimage.spl.mkimage imx-boot.map \
 	       itb.fit.fit itb.fit.itb itb.map spl.map mkimage-out.rom.mkimage \
 	       mkimage.rom.mkimage rom.map simple-bin.map simple-bin-spi.map \
-	       idbloader-spi.img
+	       idbloader-spi.img \
+		   bl2.bin preloader.bin bl31-uboot.fip bl31.bin.lzma tcboot.bin bootext.ram _tcboot.fip key_area.bin \
+		   certificates.bin *-chainloader.bin bl2-bl31-uboot.bin
 
 # Directories & files removed with 'make mrproper'
 MRPROPER_DIRS  += include/config include/generated spl tpl \
