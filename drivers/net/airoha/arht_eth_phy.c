@@ -4197,7 +4197,7 @@ void serdes_phy_init()
         //set mac reg init
       	write_reg_word(0x1fa09000,0x71082800);
       	printf("set mac reg init\n");
-#if 1 //Interrupt for USXGMII		
+#ifdef CONFIG_TARGET_AN7581 //Interrupt for USXGMII (AN7581 only; EN7523/AN7552 have no gic/irq)
 		//enable USXGMII interrupt(pcs)
 		usxgmii_pcs_int_init(1);
 		//ARM interrupt settings
