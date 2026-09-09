@@ -473,9 +473,20 @@ static int initr_gpt(void)
 	char *gptenv = NULL;
 	struct blk_desc *blk_dev_desc = NULL;
 
-	if((blk_dev_desc = blk_get_dev("mmc", 0)) == NULL) 
-	{
-		printf("%s: mmc dev 0 NOT available\n",__func__);
+	/*
+	 * GPT partitioning is only meaningful for boards that use a block
+	 * device (eMMC/SD) as mass storage. MTD based boards keep every-
+	 * thing in raw flash partitions / UBI volumes, so probing the MMC
+	 * block device here only yields a bogus error - or rewrites the
+	 * partition table of an unrelated device - and must be skipped.
+	 */
+	if (!IS_ENABLED(CONFIG_ENV_IS_IN_MMC)) {
+		debug("%s: skipped on MTD based board\n", __func__);
+		return 0;
+	}
+
+	if ((blk_dev_desc = blk_get_dev("mmc", 0)) == NULL) {
+		debug("%s: mmc dev 0 not available\n", __func__);
 		return 0;
 	}
 

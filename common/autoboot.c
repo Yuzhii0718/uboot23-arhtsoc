@@ -520,6 +520,15 @@ int ecnt_abortboot_keyed(int bootdelay)
 		u32 blk, cnt, n;
 
 		mmc = __init_mmc_device(0, false, MMC_MODES_END);
+		if (!mmc) {
+			/*
+			 * There is nowhere to read the login info from. Fall back to
+			 * the standard behaviour and honour the key press instead of
+			 * silently continuing the autoboot.
+			 */
+			printf("No login info available on mmc\n");
+			return 1;
+		}
 
 		blk = (LOGIN_INFO_OFFSET) / mmc->read_bl_len;
 		cnt = (LOGIN_INFO_OFFSET + PBKDF_KEY_LENGTH) / mmc->read_bl_len;
@@ -544,15 +553,23 @@ int ecnt_abortboot_keyed(int bootdelay)
 
 		ret = setup_mtd_device(&mtd_bootloader, "bootloader");
 		if (ret) {
-			printf("ERROR: Invalid bootloader partition!\n");
-			return 0;
+			/*
+			 * Only the tclinux layout provides a "bootloader" partition.
+			 * Without a credential store there is no password we could
+			 * compare against, so behave like plain U-Boot and honour the
+			 * key press.
+			 */
+			printf("No login info available (%s partition not found)\n",
+			       "bootloader");
+			return 1;
 		}
 
 		ret = mtd_read(mtd_bootloader, LOGIN_INFO_OFFSET, PBKDF_KEY_LENGTH, &retlen, Login_info);
 		if (ret) {
-			printf("Failed to load the image from %s.\r\n", "bootloader");
+			printf("Failed to load the login info from %s.\r\n",
+			       "bootloader");
 
-			return 0;
+			return 1;
 		}
 	}
 
@@ -584,27 +601,34 @@ static int abortboot_single_key(int bootdelay)
 {
 	int abort = 0;
 	unsigned long ts;
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+	/* ethernet is up and may be polled for a multicast upgrade */
+	int net_up = 0;
+#endif
 	printf("Hit any key to stop autoboot: %2d ", bootdelay);
 	/*
 	 * Check if key already pressed
 	 */
 	global_multicast_lock = true; 
 	 
-#if CONFIG_IS_ENABLED(UBOOT_ARHT)	 
-	printf("DBG: eth init\n");
-	if(eth_init()<0)
-	{
-		printf("Eth_init error.\n");
-		return;
-	}
-	printf("DBG: eth init done\n");
-#endif	
 	if (tstc()) {	/* we got a key press	*/
 		getchar();	/* consume input	*/
 		puts("\b\b\b 0");
 		abort = 1;	/* don't auto boot	*/
 	}
-	printf("DBG: getC before bootdelay(%d)?? %d\n", bootdelay, abort);
+
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+	/*
+	 * The network is only needed to poll for a multicast upgrade, so
+	 * bring it up after checking for a key press: ethernet init may
+	 * take a while and must neither delay nor skip the abort key, and
+	 * it must never be fatal.
+	 */
+	net_up = (!abort && eth_init() == 0);
+	if (!net_up)
+		debug("%s: ethernet is not available\n", __func__);
+#endif
+	debug("getC before bootdelay(%d)?? abort=%d\n", bootdelay, abort);
 	while ((!abort)) {
 #if CONFIG_IS_ENABLED(UBOOT_ARHT)		
 		if (bootdelay >= 0)--bootdelay;
@@ -619,7 +643,8 @@ static int abortboot_single_key(int bootdelay)
 		if(!multicastupgrade_started){
 			ts = get_timer(0);
 		}
-		multiupgrade_check();
+		if (net_up)
+			multiupgrade_check();
 		if(multicastupgrade_started && multicastupgrade_finished) 
 			break; 
 #else
@@ -658,9 +683,9 @@ static int abortboot_single_key(int bootdelay)
 #if CONFIG_IS_ENABLED(UBOOT_ARHT)
 	if(abort)
 	{
-		printf("DBG: ecnt_abortboot_keyed()\n");
-		abort = ecnt_abortboot_keyed(bootdelay);	
-		printf("DBG: ret = %d\n", abort);
+		debug("ecnt_abortboot_keyed()\n");
+		abort = ecnt_abortboot_keyed(bootdelay);
+		debug("ecnt_abortboot_keyed() ret = %d\n", abort);
 		return abort;
 	}
 #endif
