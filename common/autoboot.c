@@ -490,13 +490,14 @@ static int setup_mtd_device(struct mtd_info **mtd, const char* mtd_dev)
 	mtd_probe_devices();
 
 	mtd_info = get_mtd_device_nm(mtd_dev);
-	if (mtd_info)
-	{
-		*mtd = mtd_info;
-		return 0;
+	if (IS_ERR_OR_NULL(mtd_info)) {
+		printf("MTD device %s not found, ret %ld\n", mtd_dev,
+		       PTR_ERR(mtd_info));
+		return -1;
 	}
-	printf("MTD device %s not found\n", mtd_dev);
-	return -1;
+	*mtd = mtd_info;
+
+	return 0;
 }
 
 int ecnt_abortboot_keyed(int bootdelay)
