@@ -2225,14 +2225,13 @@ void serdes_phy_init()
     uint wan_config = 0;//1fb00070    
     uint scu_ssr3 = 0;//1fb00094
 	uint scu_sstr = 0;//1fb0009c
-	
-	serdes_intf[SERDES_ETH] = env_get("serdes_ethernet");
-    serdes_intf[SERDES_USB] = env_get("serdes_usb1");
-    serdes_intf[SERDES_PCIE1] = env_get("serdes_wifi1");
-    serdes_intf[SERDES_PCIE2] = env_get("serdes_wifi2");
-    serdes_intf[SERDES_PON] = env_get("serdes_pon");
-    
-    /////////////////////////////////// AN7583 Serdes 1 Start  ///////////////////////////////////  
+
+	serdes_intf[SERDES_ETH] = serdes_intf_env("serdes_ethernet");
+    serdes_intf[SERDES_USB] = serdes_intf_env("serdes_usb1");
+    serdes_intf[SERDES_PCIE1] = serdes_intf_env("serdes_wifi1");
+    serdes_intf[SERDES_PCIE2] = serdes_intf_env("serdes_wifi2");
+	serdes_intf[SERDES_PON] = serdes_intf_env("serdes_pon");
+	/////////////////////////////////// AN7583 Serdes 1 Start  ///////////////////////////////////
 
 	len_eth = strlen(serdes_intf[SERDES_PON]);
 	if(len_eth < 2)
@@ -4025,12 +4024,12 @@ void serdes_phy_init()
 	int len_eth = 0;
 	
 	
-	serdes_intf[SERDES_ETH] = env_get("serdes_ethernet");
-    serdes_intf[SERDES_USB] = env_get("serdes_usb1");
-    serdes_intf[SERDES_PCIE1] = env_get("serdes_wifi1");
-    serdes_intf[SERDES_PCIE2] = env_get("serdes_wifi2");
-	serdes_intf[SERDES_PON] = env_get("serdes_pon");
-	
+	serdes_intf[SERDES_ETH] = serdes_intf_env("serdes_ethernet");
+    serdes_intf[SERDES_USB] = serdes_intf_env("serdes_usb1");
+    serdes_intf[SERDES_PCIE1] = serdes_intf_env("serdes_wifi1");
+    serdes_intf[SERDES_PCIE2] = serdes_intf_env("serdes_wifi2");
+	serdes_intf[SERDES_PON] = serdes_intf_env("serdes_pon");
+
 	len_eth = strlen(serdes_intf[SERDES_ETH]);
 	if(len_eth < 2)
 	{

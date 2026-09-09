@@ -6,6 +6,26 @@
  *  Zhengping Zhang , zhengping.zhang@airoha.com
 */ 
 #include "skbuff.h"
+#include <env.h>
+#include <log.h>
+
+/*
+ * The serdes port modes are described by the optional environment
+ * variables "serdes_ethernet"/"serdes_usb1"/"serdes_wifi1"... Boards
+ * without a board select (RFB) configuration never define them, so
+ * never hand the raw env_get() result to strlen(): it may be NULL.
+ */
+static inline unsigned char *serdes_intf_env(const char *name)
+{
+	const char *val = env_get(name);
+
+	if (!val) {
+		debug("serdes: env '%s' is not set\n", name);
+		val = "";
+	}
+
+	return (unsigned char *)val;
+}
 
 #define DBG_LB       (1 << 18)
 #define DBG_HW       (1 << 19)
