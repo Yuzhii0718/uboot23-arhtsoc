@@ -909,11 +909,14 @@ int add_mtd_partitions_of(struct mtd_info *master)
 			continue;
 
 		offset = ofnode_get_addr_size_index_notrans(child, 0, &size);
-		if (offset == FDT_ADDR_T_NONE || !size) {
-			debug("Missing partition offset/size on \"%s\" partition\n",
+		if (offset == FDT_ADDR_T_NONE) {
+			debug("Missing partition offset on \"%s\" partition\n",
 			      master->name);
 			continue;
 		}
+
+		if (size == MTDPART_SIZ_FULL)
+			size = master->size - offset;
 
 		part.name = ofnode_read_string(child, "label");
 		if (!part.name)
@@ -930,7 +933,7 @@ int add_mtd_partitions_of(struct mtd_info *master)
 		if (ofnode_read_bool(child, "lock"))
 			part.mask_flags |= MTD_POWERUP_LOCK;
 
-		if (!strcmp(part.name, "art")){
+		if (part.name && size && !strcmp(part.name, "art")) {
 			//printf("\n\033[32;1m [art] %s, line=%d   \033[0m\n", __FUNCTION__, __LINE__);
 			/* use the last block to record bootflag */
 			offset = (master->size) - size;
