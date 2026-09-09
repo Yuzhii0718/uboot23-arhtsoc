@@ -5,6 +5,7 @@
     };
     partition@20000 {
         label = "ubi";
-        reg = <0x00000000 0x00200000 0x00000000 0x007F00000>; /* 127MB */
+        /* size 0 = MTDPART_SIZ_FULL: up to the end of the NAND device */
+        reg = <0x00000000 0x00200000 0x00000000 0x00000000>;
     };
 };
