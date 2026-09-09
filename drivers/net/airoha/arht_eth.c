@@ -1828,10 +1828,10 @@ void xfi_mac_init(void)
 	ulong upgrade_serdes = 0;
 	int len_eth = 0;
     
-    serdes_intf[SERDES_ETH] = env_get("serdes_ethernet");
-    serdes_intf[SERDES_USB] = env_get("serdes_usb1");
-    serdes_intf[SERDES_PCIE1] = env_get("serdes_wifi1");
-    serdes_intf[SERDES_PCIE2] = env_get("serdes_wifi2");
+    serdes_intf[SERDES_ETH] = serdes_intf_env("serdes_ethernet");
+    serdes_intf[SERDES_USB] = serdes_intf_env("serdes_usb1");
+    serdes_intf[SERDES_PCIE1] = serdes_intf_env("serdes_wifi1");
+    serdes_intf[SERDES_PCIE2] = serdes_intf_env("serdes_wifi2");
 
 	upgrade_serdes = env_get_ulong("fw_port", NULL, FW_PORT_DEFAULT);
 	len_eth = strlen(serdes_intf[SERDES_ETH]);
@@ -1896,10 +1896,10 @@ static int arht_eth_check_serdes(unsigned int* p_fport,unsigned int* p_chn,unsig
 	ulong upgrade_serdes = 0;
 	int len_eth = 0;
     
-    serdes_intf[SERDES_ETH] = env_get("serdes_ethernet");
-    serdes_intf[SERDES_USB] = env_get("serdes_usb1");
-    serdes_intf[SERDES_PCIE1] = env_get("serdes_wifi1");
-    serdes_intf[SERDES_PCIE2] = env_get("serdes_wifi2");
+    serdes_intf[SERDES_ETH] = serdes_intf_env("serdes_ethernet");
+    serdes_intf[SERDES_USB] = serdes_intf_env("serdes_usb1");
+    serdes_intf[SERDES_PCIE1] = serdes_intf_env("serdes_wifi1");
+    serdes_intf[SERDES_PCIE2] = serdes_intf_env("serdes_wifi2");
 
 	upgrade_serdes = env_get_ulong("fw_port", NULL, FW_PORT_DEFAULT);
 	len_eth = strlen(serdes_intf[SERDES_ETH]);
