@@ -37,6 +37,8 @@ DECLARE_GLOBAL_DATA_PTR;
  *   what is supported.  Returns < 0 on error, 0 if the PHY's advertisement
  *   hasn't changed, and > 0 if it has changed.
  */
+extern int phy_air_en8811h_init(void);
+extern int an8831_phy_init(void);
 static int genphy_config_advert(struct phy_device *phydev)
 {
 	u32 advertise;
@@ -501,6 +503,12 @@ int phy_init(void)
 #endif
 #ifdef CONFIG_PHY_BROADCOM
 	phy_broadcom_init();
+#endif
+#ifdef CONFIG_PHY_AIROHA_EN8811H
+	phy_air_en8811h_init();
+#endif
+#ifdef CONFIG_PHY_AN8831X
+	an8831_phy_init();
 #endif
 #ifdef CONFIG_PHY_CORTINA
 	phy_cortina_init();

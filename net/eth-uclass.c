@@ -413,10 +413,18 @@ int eth_rx(void)
 	for (i = 0; i < ETH_PACKETS_BATCH_RECV; i++) {
 		ret = eth_get_ops(current)->recv(current, flags, &packet);
 		flags = 0;
+	#ifdef CONFIG_OPEN_IMAGE
+		/*
+			The recv handler has already processed the data,
+			and returns the number of packets instead of the length,
+			which would cause an exception if the delivery continued.
+		*/
+	#else /* !CONFIG_OPEN_IMAGE */
 		if (ret > 0)
 			net_process_received_packet(packet, ret);
 		if (ret >= 0 && eth_get_ops(current)->free_pkt)
 			eth_get_ops(current)->free_pkt(current, packet, ret);
+	#endif /* CONFIG_OPEN_IMAGE */
 		if (ret <= 0)
 			break;
 	}

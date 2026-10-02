@@ -26,6 +26,59 @@
 #include <crypt.h>
 #include <dm/ofnode.h>
 
+#include <net.h>
+#include <mtd.h>
+
+
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+#include<airoha/arhtglobal.h>
+
+#include <asm/tc3162.h>
+#include <asm/io.h>
+#include <common.h>
+#include <common.h>
+#include <command.h>
+#include <blk.h>
+#include <image.h>
+#include <malloc.h>
+#include <linux/ctype.h>
+#include <asm/io.h>
+#include <linux/libfdt.h>
+#include <linux/mtd/mtd.h>
+#include <mmc.h>
+#include <ecnt_flash.h>
+#include <ecnt_image.h>
+#include <airoha/trx.h>
+
+#ifdef INCLUDE_UIP_FWUPGRADE
+#include "bootlib.h"
+#endif /* INCLUDE_UIP_FWUPGRADE */
+
+#ifdef TCSUPPORT_TCBOOT_1MB_SIZE
+#define LOGIN_INFO_OFFSET		(0xfbf80)
+#else
+#define LOGIN_INFO_OFFSET		(0x7be70)
+#endif
+#define MEMORY_BASE_ADDRESS		(0x81800000)
+#define USERNAME_ADDRESS		(MEMORY_BASE_ADDRESS)
+#define PASSWORD_ADDRESS		(USERNAME_ADDRESS + LINE_LEN)
+#define LOGIN_INFO_ADDRESS		(PASSWORD_ADDRESS + LINE_LEN)
+
+/* Need to same setting with compile time */
+#define PBKDF_ITERATION_TIME	(30000)
+#define PBKDF_KEY_LENGTH		(64)
+#define PBKDF_HASH_ALGO			(512)
+
+#define LINE_LEN		      128
+#define CMD                     0   /*flag for cmd_gets() input cmd*/
+#define PWD                     1   /*flag for cmd_gets() input passwd*/
+#define USERNAME_PASSWD_LEN	   16   /*length of username or passwd*/
+#undef NULL
+#define NULL    0
+int startmulticast = 0;
+int multicastupgrade_started = 0 ;
+int multicastupgrade_fail =0;
+#endif
 DECLARE_GLOBAL_DATA_PTR;
 
 #define DELAY_STOP_STR_MAX_LENGTH 64
@@ -39,6 +92,11 @@ DECLARE_GLOBAL_DATA_PTR;
 /* Stored value of bootdelay, used by autoboot_command() */
 static int stored_bootdelay;
 static int menukey;
+extern int eth_rx(void);
+extern int arht_serial_getc(struct udevice *dev);
+extern void arht_serial_putc(struct udevice *dev, char c);
+extern int mtd_probe_devices(void);
+extern int eth_init(void); 
 
 #if defined(CONFIG_AUTOBOOT_STOP_STR_CRYPT)
 #define AUTOBOOT_STOP_STR_CRYPT	CONFIG_AUTOBOOT_STOP_STR_CRYPT
@@ -57,6 +115,9 @@ static int menukey;
 #define AUTOBOOT_MENUKEY 0
 #endif
 
+#define read_reg_word(reg) 			VPint(reg)
+#define write_reg_word(reg, wdata) 		VPint(reg)=wdata
+#define IO_SBITS(reg, bit)			{ uint t = read_reg_word((reg)); write_reg_word((reg), (t|bit)); }
 /**
  * passwd_abort_crypt() - check for a crypt-style hashed key sequence to abort booting
  *
@@ -75,6 +136,7 @@ static int menukey;
  * @etime: Timeout value ticks (stop when get_ticks() reachs this)
  * Return: 0 if autoboot should continue, 1 if it should stop
  */
+
 static int passwd_abort_crypt(uint64_t etime)
 {
 	const char *crypt_env_str = env_get("bootstopkeycrypt");
@@ -367,6 +429,220 @@ static int abortboot_key_sequence(int bootdelay)
 	return abort;
 }
 
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+static void multiupgrade_check(void)
+{	
+		if(eth_rx()<0)
+		{
+			printf("Eth_receive error.\n");
+		}
+	return;
+}
+static char *cmd_gets(char *buf, int len, int flag)
+{
+#define KEY_BS			0x08
+#define KEY_CR			0x0D
+	int c,i=0;
+	char *cp;
+	struct udevice *dev= NULL;
+	cp = buf;
+	while ((c = arht_serial_getc(dev)) != KEY_CR)
+	{
+		if ( c == KEY_BS ) 
+		{
+			if ( cp != buf ) 
+			{
+				printf("\b \b");
+				cp--;
+				i--;
+			}
+		} 
+		else
+		{
+			if ( buf != NULL ) 
+			{
+				if ( i <= len-1 )			
+				{
+					if ( flag == 0x0 )
+						arht_serial_putc(dev,c);
+					else 
+						arht_serial_putc(dev,'*');
+					*cp++ = c;
+					i++;
+				}
+			}
+		}
+	}
+	if (buf != NULL)
+		*cp = '\0';
+	return buf;
+}
+static int trim(char *buf)
+{
+	int i,j;
+	int flag_i=1, flag_j=1;
+	for (i=0,j=strlen(buf)-1; i<=j; i++,j--)
+	{
+		if (flag_i)
+		{	
+			if((buf[i] != ' ') && (buf[i] != '\t'))
+			flag_i = 0;
+		}
+		if (flag_j)
+		{
+			if((buf[j] == ' ') || (buf[j] == '\t'))
+				buf[j] = 0;
+			else
+				flag_j = 0;
+		}
+		if ((flag_i == 0) && (flag_j == 0))
+			break;
+	}
+	return i;
+}
+
+static int pbkdf2_password_setting (unsigned int iter_time, unsigned int key_length, unsigned int hash_algo)
+{
+	unsigned long r0 = 0, r1 = 0, r2 = 0, r3 = 0;
+#ifdef TCSUPPORT_UBOOT_64BIT
+	struct arm_smccc_res res;
+#endif
+
+	r0 = 0x82000004;
+	r1 = 0x464E4353;			/* SCNF */
+	r2 = iter_time;
+	r3 = ((hash_algo << 16) | key_length);
+
+#ifdef TCSUPPORT_UBOOT_64BIT
+	__arm_smccc_smc(r0, r1, r2, r3, 0, 0, 0 ,0, &res,0);
+	return res.a0;
+#else
+	do_smc(r0, r1, r2, r3);
+	return 0;
+#endif
+}
+
+static int pbkdf2_password_compare (void)
+{
+	unsigned long r0 = 0, r1 = 0, r2 = 0, r3 = 0;
+#ifdef TCSUPPORT_UBOOT_64BIT
+	struct arm_smccc_res res;
+#endif
+
+	r0 = 0x82000004;
+	r1 = 0x504D4350;			/* PCMP */
+	r2 = MEMORY_BASE_ADDRESS;
+	r3 = LINE_LEN;
+
+#ifdef TCSUPPORT_UBOOT_64BIT
+	__arm_smccc_smc(r0, r1, r2, r3, 0, 0, 0 ,0, &res,0);
+	return res.a0;
+#else
+	return do_smc(r0, r1, r2, r3);
+#endif
+}
+
+static int setup_mtd_device(struct mtd_info **mtd, const char* mtd_dev)
+{
+	struct mtd_info *mtd_info;
+
+	mtd_probe_devices();
+
+	mtd_info = get_mtd_device_nm(mtd_dev);
+	if (mtd_info)
+	{
+		*mtd = mtd_info;
+		return 0;
+	}
+	printf("MTD device %s not found\n", mtd_dev);
+	return -1;
+}
+
+int ecnt_abortboot_keyed(int bootdelay)
+{
+	unsigned char *UserName = (unsigned char *)(USERNAME_ADDRESS);
+	unsigned char *Pwd = (unsigned char *)(PASSWORD_ADDRESS);
+	unsigned char *Login_info = (unsigned char *)(LOGIN_INFO_ADDRESS);
+
+	int abort = 0;
+	int i;
+#ifdef TCSUPPORT_AUTOBENCH
+	/* always abort login username/passwd */
+	return 1;
+#endif
+
+#ifdef CONFIG_OPEN_IMAGE
+	/* always abort login username/passwd */
+	return 1;
+#endif/*CONFIG_OPEN_IMAGE*/
+	memset (Login_info, 0, LINE_LEN);
+
+	if (is_emmc())
+	{
+		struct mmc *mmc;
+		u32 blk, cnt, n;
+
+		mmc = __init_mmc_device(0, false, MMC_MODES_END);
+
+		blk = (LOGIN_INFO_OFFSET) / mmc->read_bl_len;
+		cnt = (LOGIN_INFO_OFFSET + PBKDF_KEY_LENGTH) / mmc->read_bl_len;
+		if(((LOGIN_INFO_OFFSET + PBKDF_KEY_LENGTH) % mmc->read_bl_len) != 0)
+		{
+			cnt++;
+		}
+		cnt -= blk;
+		n = blk_dread(mmc_get_blk_desc(mmc), blk, cnt, Login_info);
+
+		memmove ((void *)Login_info, (void *)(Login_info + LOGIN_INFO_OFFSET - blk*mmc->read_bl_len), PBKDF_KEY_LENGTH);
+		if (n != cnt)
+		{
+			printf("MMC read failed\n");
+			return 1;
+		}
+	}
+	else
+	{
+		struct mtd_info *mtd_bootloader;
+		unsigned long ret, retlen;
+
+		ret = setup_mtd_device(&mtd_bootloader, "bootloader");
+		if (ret) {
+			printf("ERROR: Invalid bootloader partition!\n");
+			return 0;
+		}
+
+		ret = mtd_read(mtd_bootloader, LOGIN_INFO_OFFSET, PBKDF_KEY_LENGTH, &retlen, Login_info);
+		if (ret) {
+			printf("Failed to load the image from %s.\r\n", "bootloader");
+
+			return 0;
+		}
+	}
+
+    do {
+        memset(UserName, 0, LINE_LEN);
+        memset(Pwd, 0, LINE_LEN);
+        printf("UserName: ");
+        cmd_gets(UserName, LINE_LEN, CMD);
+        printf("\n");
+        printf("Password: ");
+        cmd_gets(Pwd, LINE_LEN, PWD);
+        i = trim(UserName);
+        printf("\n\n");
+
+        pbkdf2_password_setting (PBKDF_ITERATION_TIME, PBKDF_KEY_LENGTH, PBKDF_HASH_ALGO);
+        if (pbkdf2_password_compare() == 0)
+        {
+	        abort = 1;
+	        break;
+        }
+    } while (!abort);	
+	return abort;
+}
+#endif
+
+
+bool global_multicast_lock = false; 
 static int abortboot_single_key(int bootdelay)
 {
 	int abort = 0;
@@ -377,35 +653,104 @@ static int abortboot_single_key(int bootdelay)
 	/*
 	 * Check if key already pressed
 	 */
+
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+	startmulticast = 1;
+
+	if(eth_init()<0)
+	{
+		printf("Eth_init error.\n");
+		return -1;
+	}
+	
+	if(isEN7581)
+		IO_SBITS(0x1fa2020c, 0xf << 8);
+	if(isAN7583)
+		IO_SBITS(0x1fa2020c,0xf << 15);
+#endif
 	if (tstc()) {	/* we got a key press	*/
 		getchar();	/* consume input	*/
 		puts("\b\b\b 0");
 		abort = 1;	/* don't auto boot	*/
 	}
 
+	while ((!abort)) {
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)		
+		if (bootdelay >= 0)--bootdelay;
+#else
 	while ((bootdelay > 0) && (!abort)) {
 		--bootdelay;
+    }
+#endif
 		/* delay 1000 ms */
+
+#ifdef INCLUDE_UIP_FWUPGRADE
+		if (0 != check_fw_gpio())
+		{
+			printf("FW GPIO is pressed. Enter firmware recovery mode.\n");
+			abort = up_file();
+			bootdelay = 0;
+			break;
+		}
+#endif /* INCLUDE_UIP_FWUPGRADE */
+
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+		if(!multicastupgrade_started){
+			ts = get_timer(0);
+		}
+		multiupgrade_check();
+		if(multicastupgrade_started && multicastupgrade_finished) 
+		{
+			abort = 1;
+			break; 
+		}
+#else
 		ts = get_timer(0);
+#endif
 		do {
 			if (tstc()) {	/* we got a key press	*/
-				int key;
+#ifdef CONFIG_OPEN_IMAGE
+				char ch = getchar();
+				if (ch == 3) /* Ctrl + C */
+#endif /*CONFIG_OPEN_IMAGE*/
+				{
+					int key;
+					abort  = 1;	/* don't auto boot	*/
+					bootdelay = 0;	/* no more delay	*/
+					key = getchar();/* consume input	*/
+					if (IS_ENABLED(CONFIG_AUTOBOOT_USE_MENUKEY))
+						menukey = key;
+					break;
+				}
 
-				abort  = 1;	/* don't auto boot	*/
-				bootdelay = 0;	/* no more delay	*/
-				key = getchar();/* consume input	*/
-				if (IS_ENABLED(CONFIG_AUTOBOOT_USE_MENUKEY))
-					menukey = key;
-				break;
 			}
+#if CONFIG_IS_ENABLED(UBOOT_ARHT) 
+			if (bootdelay > 0) udelay(1000);
+#else
 			udelay(10000);
+#endif
 		} while (!abort && get_timer(ts) < 1000);
 
+#if CONFIG_IS_ENABLED(UBOOT_ARHT) 		
+		if (bootdelay > 0)
+		{	printf("\b\b\b%2d ", bootdelay);}
+		if(multicastupgrade_fail) break;
+		if(!multicastupgrade_started && bootdelay < 0) break;
+#else
 		printf("\b\b\b%2d ", bootdelay);
+#endif
 	}
 
 	putc('\n');
 
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+	startmulticast = 0;
+
+	if(abort)
+	{
+		abort = ecnt_abortboot_keyed(bootdelay);
+	}
+#endif
 	return abort;
 }
 
@@ -510,4 +855,7 @@ void autoboot_command(const char *s)
 		if (s)
 			run_command_list(s, -1, 0);
 	}
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+	startmulticast = 0;
+#endif
 }

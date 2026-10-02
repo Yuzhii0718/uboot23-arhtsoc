@@ -17,6 +17,7 @@
 #include <asm/cache.h>
 #include <asm/global_data.h>
 #include <linux/libfdt.h>
+#include <uboot_aes.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -224,6 +225,42 @@ static int get_aligned_image_size(struct spl_load_info *info, int data_size,
  *
  * Return:	0 on success or a negative error number.
  */
+ 
+typedef struct dec_list{
+	char* name;
+	int len;
+} dec_list;
+
+
+#if (defined CONFIG_ARHT_MBEDTPLS_CIPHER)
+#define SSK_BASE                (0x1f020000 - 0x400)
+
+#ifdef CONFIG_TPL_ENC
+dec_list test_list[3] ={
+	{"tee",sizeof("tee")},
+	{"atf",sizeof("atf")},
+	{"uboot",sizeof("uboot")}
+};
+
+
+int if_in_dec_list(char* _name){
+	int i=0;
+	
+	
+	
+	for(i=0;i<sizeof(test_list)/sizeof(dec_list);i++){
+		debug("%d-->%s,len=%d\n",i,test_list[i].name,test_list[i].len);
+		
+		if(!strncmp(_name, test_list[i].name, test_list[i].len)){
+				
+				return 1;
+		}
+	}
+	return 0;
+}
+#endif
+#endif
+ 
 static int spl_load_fit_image(struct spl_load_info *info, ulong sector,
 			      const struct spl_fit_info *ctx, int node,
 			      struct spl_image_info *image_info)
@@ -241,6 +278,7 @@ static int spl_load_fit_image(struct spl_load_info *info, ulong sector,
 	const void *data;
 	const void *fit = ctx->fit;
 	bool external_data = false;
+	bool enc_result = 0;
 
 	if (IS_ENABLED(CONFIG_SPL_FPGA) ||
 	    (IS_ENABLED(CONFIG_SPL_OS_BOOT) && IS_ENABLED(CONFIG_SPL_GZIP))) {
@@ -318,6 +356,22 @@ static int spl_load_fit_image(struct spl_load_info *info, ulong sector,
 			return -EPERM;
 		puts("OK\n");
 	}
+	
+	#if (defined CONFIG_ARHT_MBEDTPLS_CIPHER) && (defined CONFIG_TPL_ENC)
+	const char* _name = fit_get_name(fit, node, NULL);
+	
+	if(if_in_dec_list(_name)){
+		printf("\033[32;1m-->decrypting %s \033[0m\n",_name);
+		enc_result = enc_file_read(src, length,1);
+		
+		if(enc_result==0){
+			printf("\033[32;1m-->decrypt ok \033[0m\n");
+			// move back header for accessing (fw_enc header size is 44)
+			memcpy(src, src+44, length-44);
+		}
+	}
+	#endif
+	
 
 	if (CONFIG_IS_ENABLED(FIT_IMAGE_POST_PROCESS))
 		board_fit_image_post_process(fit, node, &src, &length);
@@ -456,7 +510,11 @@ static int spl_fit_append_fdt(struct spl_image_info *spl_image,
 			return ret;
 #endif
 	/* Try to make space, so we can inject details on the loadables */
+	#if (!defined CONFIG_ARHT_MBEDTPLS_CIPHER) && (!defined CONFIG_TPL_ENC)
+	// workaround: cannot bootup with this shrinking behavior
 	ret = fdt_shrink_to_minimum(spl_image->fdt_addr, 8192);
+	#endif
+	
 	if (ret < 0)
 		return ret;
 

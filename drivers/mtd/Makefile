@@ -18,7 +18,10 @@ mtd-$(CONFIG_HBMC_AM654) += hbmc-am654.o
 # U-Boot build
 ifeq ($(CONFIG_SPL_BUILD)$(CONFIG_TPL_BUILD),)
 
+obj-y += airoha-flash/
+
 ifneq ($(mtd-y),)
+obj-y += airoha-flash/
 obj-y += mtd.o
 endif
 obj-y += nand/
@@ -29,6 +32,8 @@ obj-$(CONFIG_MTD_UBI) += ubi/
 #SPL/TPL build
 else
 
+ifneq ($(TCSUPPORT_NEW_SPI),) # meaning it is on 
+
 ifneq ($(mtd-y),)
 obj-$(CONFIG_SPL_MTD_SUPPORT) += mtd.o
 endif
@@ -36,5 +41,11 @@ obj-$(CONFIG_$(SPL_TPL_)NAND_SUPPORT) += nand/
 obj-$(CONFIG_SPL_ONENAND_SUPPORT) += onenand/
 obj-$(CONFIG_$(SPL_TPL_)SPI_FLASH_SUPPORT) += spi/
 obj-$(CONFIG_SPL_UBI) += ubispl/
+
+else  #  if new_spi is off
+
+obj-y += airoha-flash/legacy/
+
+endif #  new_spi case close
 
 endif

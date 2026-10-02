@@ -169,7 +169,8 @@ endif
 # MXSImage needs LibSSL
 ifneq ($(CONFIG_MX23)$(CONFIG_MX28)$(CONFIG_ARMADA_38X)$(CONFIG_TOOLS_LIBCRYPTO),)
 HOSTCFLAGS_kwbimage.o += \
-	$(shell pkg-config --cflags libssl libcrypto 2> /dev/null || echo "")
+	-lssl -lcrypto
+	#$(shell pkg-config --cflags libssl libcrypto 2> /dev/null || echo "")
 HOSTLDLIBS_mkimage += \
 	$(shell pkg-config --libs libssl libcrypto 2> /dev/null || echo "-lssl -lcrypto")
 

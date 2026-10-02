@@ -695,3 +695,27 @@ U_BOOT_CMD(
 	""
 );
 #endif  /* CONFIG_CMD_NCSI */
+
+#ifdef INCLUDE_UIP_FWUPGRADE
+extern int g_web_start;
+extern int NetLoopHttpd(void);
+
+int do_httpd(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
+{
+	printf("Start web server.\n");
+
+	g_web_start = 1;
+	NetLoopHttpd();
+
+	printf("Exit web server\n");
+
+	return 0;
+}
+
+U_BOOT_CMD(
+	httpd, 1, 1, do_httpd,
+	"Start httpd server",
+	""
+);
+#endif /* INCLUDE_UIP_FWUPGRADE */
+

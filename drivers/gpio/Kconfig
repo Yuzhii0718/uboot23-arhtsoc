@@ -577,6 +577,12 @@ config MT7621_GPIO
 	help
 	  Say yes here to support MediaTek MT7621 compatible GPIOs.
 
+config ARHT_GPIO
+	bool "Airoha GPIO driver"
+	depends on DM_GPIO
+	help
+	  Support GPIO access on airoha boards.
+	  
 config NX_GPIO
 	bool "Nexell GPIO driver"
 	depends on DM_GPIO

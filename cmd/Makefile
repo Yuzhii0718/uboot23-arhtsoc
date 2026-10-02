@@ -12,6 +12,7 @@ obj-y += panic.o
 obj-y += version.o
 
 # command
+obj-$(CONFIG_CMD_SPINAND) += spinand.o
 obj-$(CONFIG_CMD_ACPI) += acpi.o
 obj-$(CONFIG_CMD_ADDRMAP) += addrmap.o
 obj-$(CONFIG_CMD_AES) += aes.o
@@ -34,6 +35,7 @@ obj-$(CONFIG_CMD_BOOTCOUNT) += bootcount.o
 obj-$(CONFIG_CMD_BOOTEFI) += bootefi.o
 obj-$(CONFIG_CMD_BOOTMENU) += bootmenu.o
 obj-$(CONFIG_CMD_BOOTSTAGE) += bootstage.o
+obj-$(CONFIG_CMD_BOOTFLAG) += bootflag.o
 obj-$(CONFIG_CMD_BOOTZ) += bootz.o
 obj-$(CONFIG_CMD_BOOTI) += booti.o
 obj-$(CONFIG_CMD_BTRFS) += btrfs.o
@@ -185,10 +187,11 @@ obj-$(CONFIG_CMD_LZMADEC) += lzmadec.o
 obj-$(CONFIG_CMD_UFS) += ufs.o
 obj-$(CONFIG_CMD_USB) += usb.o disk.o
 obj-$(CONFIG_CMD_VIDCONSOLE) += video.o
-
+obj-$(CONFIG_CMD_INIC) += inic.o
 obj-$(CONFIG_CMD_FASTBOOT) += fastboot.o
 obj-$(CONFIG_CMD_FS_UUID) += fs_uuid.o
-
+obj-$(CONFIG_CMD_EFUSE) += efuse.o
+obj-$(CONFIG_CMD_DECRYPT_GCM) += decypt_gcm.o
 obj-$(CONFIG_CMD_USB_MASS_STORAGE) += usb_mass_storage.o
 obj-$(CONFIG_CMD_USB_SDP) += usb_gadget_sdp.o
 obj-$(CONFIG_CMD_THOR_DOWNLOAD) += thordown.o
@@ -235,6 +238,9 @@ obj-$(CONFIG_$(SPL_)CMD_TLV_EEPROM) += tlv_eeprom.o
 
 # core command
 obj-y += nvedit.o
+ifdef CONFIG_TPL_BUILD
+obj-$(CONFIG_TPL_CMD_GPT) += gpt.o
+endif
 
 obj-$(CONFIG_CMD_BCM_EXT_UTILS) += broadcom/
 

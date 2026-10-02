@@ -212,7 +212,7 @@ config SPL_USE_TINY_PRINTF
 config TPL_USE_TINY_PRINTF
 	bool "Enable tiny printf() version in TPL"
 	depends on TPL
-	default y if SPL_USE_TINY_PRINTF
+	default y if !TPL_SPRINTF
 	help
 	  This option enables a tiny, stripped down printf version.
 	  This should only be used in space limited environments,
@@ -406,6 +406,7 @@ source lib/ecdsa/Kconfig
 source lib/rsa/Kconfig
 source lib/crypto/Kconfig
 source lib/crypt/Kconfig
+source lib/mbedtls/Kconfig
 
 config TPM
 	bool "Trusted Platform Module (TPM) Support"

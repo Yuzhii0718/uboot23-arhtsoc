@@ -556,6 +556,20 @@ config NET_NPCM750
 	help
 	  support NPCM750 EMAC
 
+config AIROHA_ETH
+	bool "ARHT ETH support"
+	select PHYLIB
+	select DM_GPIO
+	select DM_RESET
+	depends on DM_ETH
+	help
+	  This driver implements support for arht's ETH driver.
+
+config PHY_AN8831X
+	bool "PHY AN8831X support"
+	help
+	  This driver implements support for PHY AN8831X driver.
+
 config NET_OCTEON
 	bool "MIPS Octeon ethernet support"
 	depends on ARCH_OCTEON

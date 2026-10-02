@@ -12,6 +12,14 @@
 #include <linux/types.h>
 #include <linux/mtd/spi-nor.h>
 
+#ifndef TCSUPPORT_NEW_SPI
+#if defined(CONFIG_SPL_BUILD) || defined(CONFIG_TPL_BUILD) 
+// this is polyfill for legacy tpl mode
+int mtd_read(struct mtd_info *mtd, loff_t to , size_t len, size_t* retlen, u_char *buf) {
+	return 0;
+}
+#endif 
+#endif 
 struct udevice;
 
 struct spi_slave;
@@ -87,6 +95,7 @@ int spi_flash_erase_dm(struct udevice *dev, u32 offset, size_t len);
  *	write-protected, -ENOSYS if the driver does not implement this,
  *	other -ve value on error
  */
+ 
 int spl_flash_get_sw_write_prot(struct udevice *dev);
 
 /**
@@ -108,6 +117,53 @@ int spi_flash_probe_bus_cs(unsigned int busnum, unsigned int cs,
 struct spi_flash *spi_flash_probe(unsigned int bus, unsigned int cs,
 				  unsigned int max_hz, unsigned int spi_mode);
 
+/**
+spi_flash_read_dm_arht(): use mtd_read to read from the flash. 
+*/
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+static int spi_flash_read_dm_arht( struct spi_flash *flash, u32 offset, size_t len, void *buf)
+{
+	struct mtd_info *mtd = &flash->mtd;
+	size_t retlen;
+
+	if (!len)
+		return 0;
+
+	return mtd_read(mtd, offset, len, &retlen, buf);
+}
+
+/**
+spi_flash_write_dm_arht(): use mtd_write to write to the flash. 
+*/
+static int spi_flash_write_dm_arht(struct spi_flash *flash, u32 offset, size_t len,const void *buf)
+{
+	struct mtd_info *mtd = &flash->mtd;
+	size_t retlen;
+
+	if (!len)
+		return 0;
+
+	return mtd_write(mtd, offset, len, &retlen, buf);
+}
+
+/**
+spi_flash_erase_dm_arht(): use mtd_erase to erase the flash. 
+*/
+static int spi_flash_erase_dm_arht(struct spi_flash *flash, u32 offset, size_t len)
+{
+		struct mtd_info *mtd = &flash->mtd;
+		struct erase_info instr;
+
+		if (!len)
+			return 0;
+			
+		memset(&instr, 0, sizeof(struct erase_info));
+		instr.addr = (uint64_t) offset;
+		instr.len = (uint64_t) len;
+		return mtd_erase(mtd, &instr);
+}
+#endif
+
 /* Compatibility function - this is the old U-Boot API */
 static inline void spi_flash_free(struct spi_flash *flash)
 {
@@ -116,19 +172,31 @@ static inline void spi_flash_free(struct spi_flash *flash)
 static inline int spi_flash_read(struct spi_flash *flash, u32 offset,
 				 size_t len, void *buf)
 {
-	return spi_flash_read_dm(flash->dev, offset, len, buf);
+	#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+		return spi_flash_read_dm_arht(flash, offset, len, buf);
+	#else
+		return spi_flash_read_dm(flash->dev, offset, len, buf);
+	#endif
 }
 
 static inline int spi_flash_write(struct spi_flash *flash, u32 offset,
 				  size_t len, const void *buf)
 {
-	return spi_flash_write_dm(flash->dev, offset, len, buf);
+	#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+		return spi_flash_write_dm_arht(flash, offset, len, buf);
+	#else
+		return spi_flash_write_dm(flash->dev, offset, len, buf);
+	#endif
 }
 
 static inline int spi_flash_erase(struct spi_flash *flash, u32 offset,
 				  size_t len)
 {
-	return spi_flash_erase_dm(flash->dev, offset, len);
+	#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+			return spi_flash_erase_dm_arht(flash, offset, len);
+	#else 
+			return spi_flash_erase_dm(flash->dev, offset, len);
+	#endif
 }
 
 struct sandbox_state;

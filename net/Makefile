@@ -16,9 +16,17 @@ obj-$(CONFIG_DM_MDIO)  += mdio-uclass.o
 obj-$(CONFIG_DM_MDIO_MUX) += mdio-mux-uclass.o
 obj-$(CONFIG_$(SPL_)DM_ETH) += eth_common.o
 obj-$(CONFIG_CMD_LINK_LOCAL) += link_local.o
+ifneq ($(CONFIG_OPEN_IMAGE),)
+ifeq ($(TCSUPPORT_CPU_AN7583)$(TCSUPPORT_CPU_AN7552),)
 obj-$(CONFIG_IPV6)     += ndisc.o
+endif
+endif
 obj-$(CONFIG_$(SPL_)DM_ETH) += net.o
+ifneq ($(CONFIG_OPEN_IMAGE),)
+ifeq ($(TCSUPPORT_CPU_AN7583)$(TCSUPPORT_CPU_AN7552),)
 obj-$(CONFIG_IPV6)     += net6.o
+endif
+endif
 obj-$(CONFIG_CMD_NFS)  += nfs.o
 obj-$(CONFIG_CMD_PING) += ping.o
 obj-$(CONFIG_CMD_PING6) += ping6.o

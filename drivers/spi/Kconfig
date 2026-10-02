@@ -282,6 +282,12 @@ config MTK_SNOR
 	  Enable the Mediatek SPINOR controller driver. This driver has
           better read/write performance with NOR.
 
+config ARHT_SPI
+	bool "AIROHA SPI-NAND controller driver"
+	help
+	  Enable the AIROHA SPI-NAND controller driver. This driver has
+	  better read/write performance with SPI NAND.
+
 config MTK_SNFI_SPI
 	bool "Mediatek SPI memory controller driver"
 	depends on SPI_MEM

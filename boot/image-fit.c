@@ -43,6 +43,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #include <u-boot/sha256.h>
 #include <u-boot/sha512.h>
 
+/* new added here for compiling weak symbol*/
+#include <linux/compiler_attributes.h>
+
 /*****************************************************************************/
 /* New uImage format routines */
 /*****************************************************************************/
@@ -2051,6 +2054,10 @@ static const char *fit_get_image_type_property(int type)
 	return "unknown";
 }
 
+__weak int enc_file_read(uintptr_t buffer, size_t _len, uint8_t early_stage){
+	return 0;
+}
+
 int fit_image_load(struct bootm_headers *images, ulong addr,
 		   const char **fit_unamep, const char **fit_uname_configp,
 		   int arch, int ph_type, int bootstage_id,
@@ -2209,13 +2216,36 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 
 	/* Decrypt data before uncompress/move */
 	if (IS_ENABLED(CONFIG_FIT_CIPHER) && IMAGE_ENABLE_DECRYPT) {
-		puts("   Decrypting Data ... ");
+		printf("   Decrypting Data ... ");
 		if (fit_image_uncipher(fit, noffset, &buf, &size)) {
 			puts("Error\n");
 			return -EACCES;
 		}
 		puts("OK\n");
 	}
+
+	#if (defined CONFIG_ARHT_MBEDTPLS_CIPHER) && (defined CONFIG_TPL_ENC)
+
+	/* Airoha decrypting here */
+	if(!strncmp(prop_name,"kernel",sizeof("kernel"))){
+		int decrypt_res=-1;
+
+		printf("   Decrypting Data ... buf=%p, size=%x \n", buf, size);
+
+		decrypt_res = enc_file_read(buf, size, 0);
+		printf("\033[32;1m  %s #%d\033[0m\n", __func__, __LINE__);
+		//fit_image_mbed_decrypt();
+
+		printf("decryption result=%d\n", decrypt_res);
+		if(decrypt_res){
+			printf("\033[31;1m fail\033[0m\n")	;
+		}else{
+			printf("mem mov..\n");
+			memmove(buf, buf+44, size-44);
+		}	
+	}
+	#endif
+
 
 	/* perform any post-processing on the image data */
 	if (!tools_build() && IS_ENABLED(CONFIG_FIT_IMAGE_POST_PROCESS))

@@ -29,6 +29,29 @@ int eth_env_set_enetaddr_by_index(const char *base_name, int index,
 	return eth_env_set_enetaddr(enetvar, enetaddr);
 }
 
+#if defined(INCLUDE_ADSL_ECN) && defined(INCLUDE_BOOT_ENABLE_2G5_LAN)
+static void eth_disable_dsl()
+{
+	char *p = NULL;
+	uint dsl_gpio = 0;
+
+	p = env_get("dsl_gpio");
+	if (NULL == p)
+	{
+		printf("env not set dsl_gpio, do not reset dsl.");
+		return;
+	}
+
+	dsl_gpio = simple_strtoul(p, NULL, 16);
+	printf("dsl_gpio=%d\n", dsl_gpio);
+	if (0 != dsl_gpio)
+	{
+		LED_OEN(dsl_gpio);
+		turn_low_gpio(dsl_gpio);
+	}
+}
+#endif /* INCLUDE_ADSL_ECN && INCLUDE_BOOT_ENABLE_2G5_LAN */
+
 void eth_common_init(void)
 {
 	bootstage_mark(BOOTSTAGE_ID_NET_ETH_START);
@@ -36,6 +59,11 @@ void eth_common_init(void)
 #if defined(CONFIG_MII) || defined(CONFIG_CMD_MII) || defined(CONFIG_PHYLIB)
 	miiphy_init();
 #endif
+
+#if defined(INCLUDE_ADSL_ECN) && defined(INCLUDE_BOOT_ENABLE_2G5_LAN)
+	printf("disable dsl before en8811 init\n");
+	eth_disable_dsl();
+#endif /* INCLUDE_ADSL_ECN && INCLUDE_BOOT_ENABLE_2G5_LAN */
 
 #ifdef CONFIG_PHYLIB
 	phy_init();

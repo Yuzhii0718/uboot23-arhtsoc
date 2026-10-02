@@ -104,6 +104,20 @@ static int mx35lf1ge4ab_ecc_get_status(struct spinand_device *spinand,
 	return -EINVAL;
 }
 
+static int mx35lf4ge4ad_ooblayout_free(struct mtd_info *mtd,int section, struct mtd_oob_region *region)
+{
+	if(section>7)
+		return -ERANGE;
+	region->offset = (16 * section) + 4;
+	region->length = 12;
+	return 0;
+}
+
+static const struct mtd_ooblayout_ops mx35lf4ge4ad_ooblayout = {
+	.ecc = mx35lfxge4ab_ooblayout_ecc,
+	.rfree = mx35lf4ge4ad_ooblayout_free,
+};
+
 static const struct spinand_info macronix_spinand_table[] = {
 	SPINAND_INFO("MX35LF1GE4AB", 0x12,
 		     NAND_MEMORG(1, 2048, 64, 64, 1024, 1, 1, 1),
@@ -167,6 +181,19 @@ static const struct spinand_info macronix_spinand_table[] = {
 		     SPINAND_HAS_QE_BIT,
 		     SPINAND_ECCINFO(&mx35lfxge4ab_ooblayout,
 				     mx35lf1ge4ab_ecc_get_status)),
+					 
+ 
+	SPINAND_INFO("MX35LF4GE4AD", 0x37,
+		     NAND_MEMORG(1, 4096, 128, 64, 2048, 1, 1, 1),
+		     NAND_ECCREQ(8, 512),
+		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
+					      &write_cache_variants,
+					      &update_cache_variants),
+		     SPINAND_HAS_QE_BIT,
+		     SPINAND_ECCINFO(&mx35lf4ge4ad_ooblayout,
+				     mx35lf1ge4ab_ecc_get_status)),
+					 
+	
 
 };
 

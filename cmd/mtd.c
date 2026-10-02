@@ -202,11 +202,18 @@ static bool mtd_oob_write_is_empty(struct mtd_oob_ops *op)
 	return true;
 }
 
+#define VPint   *(volatile unsigned int *)
+#define isEMMC	((VPint(0x1fb000b8) & (1 << 6)) ? 1 : 0)
 static int do_mtd_list(struct cmd_tbl *cmdtp, int flag, int argc,
 		       char *const argv[])
 {
 	struct mtd_info *mtd;
 	int dev_nb = 0;
+
+	if(isEMMC) {
+		printf("MMC does not support MTD, please use MMC command\n");
+		return CMD_RET_FAILURE;
+	}
 
 	/* Ensure all devices (and their partitions) are probed */
 	mtd_probe_devices();

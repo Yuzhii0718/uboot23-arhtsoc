@@ -8,3 +8,4 @@ obj-$(CONFIG_MTD_SPI_NAND) += spi/
 else
 obj-$(CONFIG_$(SPL_TPL_)NAND_SUPPORT) += raw/
 endif
+obj-y += airoha-bmt.o mtk-bmt.o

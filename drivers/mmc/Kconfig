@@ -823,6 +823,17 @@ config MMC_MTK
 	  This is needed if support for any SD/SDIO/MMC devices is required.
 	  If unsure, say N.
 
+config MMC_AIROHA
+	bool "AIROHA SD/MMC Card Interface support"
+	depends on ARCH_AIROHA
+	depends on BLK && DM_MMC
+	depends on OF_CONTROL
+	help
+	  This selects the AIROHA Secure digital and Multimedia card Interface.
+	  If you have a machine with a integrated SD/MMC card reader, say Y or M here.
+	  This is needed if support for any SD/SDIO/MMC devices is required.
+	  If unsure, say N.
+
 endif
 
 config FSL_SDHC_V2_3

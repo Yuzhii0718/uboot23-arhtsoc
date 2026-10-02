@@ -23,6 +23,34 @@ config HUSH_PARSER
 	  If disabled, you get the old, much simpler behaviour with a somewhat
 	  smaller memory footprint.
 
+config CMD_SPINAND
+	bool "Support SPI Nand utility commands"
+	depends on ARCH_AIROHA
+	default y
+	help
+	  This option supports utility commands for SPI-NAND flash (eg. forceeraseall)
+	  
+config CMD_EFUSE
+	bool "efuse"
+	depends on ARCH_AIROHA
+	default y
+	help
+	  efuse
+
+config CMD_DECRYPT_GCM
+	bool "support decrypting gcm data"
+	depends on ARCH_AIROHA
+	help
+	  This options is used to decrypt aes256-gcm
+
+	  
+config CMD_BOOTFLAG
+	bool "bootflag"
+	depends on ARCH_AIROHA
+	default y
+	help
+	  bootflag
+
 config CMDLINE_EDITING
 	bool "Enable command line editing"
 	depends on CMDLINE
@@ -135,6 +163,11 @@ config CMD_BDI
 	help
 	  Print board info
 
+config CMD_INIC
+	bool "inic"
+	default n
+	help
+	  This option is for iNIC init process.
 config CMD_CONFIG
 	bool "config"
 	default SANDBOX
@@ -1119,6 +1152,14 @@ config CMD_GPT
 	help
 	  Enable the 'gpt' command to ready and write GPT style partition
 	  tables.
+	  
+config TPL_CMD_GPT
+	bool "GPT (GUID Partition Table) command"
+	select TPL_EFI_PARTITION
+	select TPL_PARTITION_UUIDS
+	imply RANDOM_UUID
+	help
+	  Enable the gpt operation for TPL.
 
 config RANDOM_UUID
 	bool "GPT Random UUID generation"

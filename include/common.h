@@ -26,9 +26,35 @@
 #include <vsprintf.h>
 #endif	/* __ASSEMBLY__ */
 
+#include <blk.h>
+
 /* Pull in stuff for the build system */
 #ifdef DO_DEPS_ONLY
 # include <env_internal.h>
 #endif
+
+char *env_get(const char *name);
+int gpt_verify(struct blk_desc *blk_dev_desc, const char *str_part);
+int gpt_default(struct blk_desc *blk_dev_desc, const char *str_part);
+
+#ifdef INCLUDE_UIP_FWUPGRADE
+
+typedef struct _BUFFER_ELEM_ BUFFER_ELEM;
+
+struct _BUFFER_ELEM_
+{
+	int				tx_idx;
+    unsigned char	*pbuf;
+    BUFFER_ELEM		*next;
+};
+
+typedef struct _VALID_BUFFER_STRUCT_ VALID_BUFFER_STRUCT;
+
+struct _VALID_BUFFER_STRUCT_
+{
+    BUFFER_ELEM		*head;
+    BUFFER_ELEM		*tail;
+};
+#endif /* INCLUDE_UIP_FWUPGRADE */
 
 #endif	/* __COMMON_H_ */

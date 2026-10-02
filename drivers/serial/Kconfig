@@ -820,6 +820,11 @@ config ROCKCHIP_SERIAL
 	  This uses the ns16550 driver, converting the platdata from of-platdata
 	  to the ns16550 format.
 
+config ARHT_SERIAL
+	bool "AIROHA Serial driver"
+	help
+	  Enable the AIROHA Serial Driver
+
 config S5P_SERIAL
 	bool "Support for Samsung S5P UART"
 	depends on ARCH_APPLE || ARCH_EXYNOS || ARCH_S5PC1XX

@@ -15,6 +15,7 @@
 #include <asm/byteorder.h>
 #include <asm/memory.h>
 #include <asm/barriers.h>
+#include <compiler.h>
 
 static inline void sync(void)
 {
@@ -23,12 +24,14 @@ static inline void sync(void)
 /* Generic virtual read/write. */
 #define __arch_getb(a)			(*(volatile unsigned char *)(a))
 #define __arch_getw(a)			(*(volatile unsigned short *)(a))
-#define __arch_getl(a)			(*(volatile unsigned int *)(a))
+//#define __arch_getl(a)			(*(volatile unsigned int *)(a))
+#define __arch_getl(a)			(*(volatile unsigned int *)(uintptr_t)(a))
 #define __arch_getq(a)			(*(volatile unsigned long long *)(a))
 
 #define __arch_putb(v,a)		(*(volatile unsigned char *)(a) = (v))
 #define __arch_putw(v,a)		(*(volatile unsigned short *)(a) = (v))
-#define __arch_putl(v,a)		(*(volatile unsigned int *)(a) = (v))
+//#define __arch_putl(v,a)		(*(volatile unsigned int *)(a) = (v))
+#define __arch_putl(v,a)		(*(volatile unsigned int *)(uintptr_t)(a) = (v))
 #define __arch_putq(v,a)		(*(volatile unsigned long long *)(a) = (v))
 
 static inline void __raw_writesb(unsigned long addr, const void *data,
@@ -90,6 +93,7 @@ static inline void __raw_readsl(unsigned long addr, void *data, int longlen)
  * TODO: The kernel offers some more advanced versions of barriers, it might
  * have some advantages to use them instead of the simple one here.
  */
+#undef mb
 #define mb()		dsb()
 #define rmb()		dsb()
 #define wmb()		dsb()

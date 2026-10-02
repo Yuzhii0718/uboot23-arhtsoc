@@ -182,6 +182,162 @@ static int do_mem_mw(struct cmd_tbl *cmdtp, int flag, int argc,
 	return 0;
 }
 
+static int do_mem_fd(struct cmd_tbl *cmdtp, int flag, int argc,
+		     char *const argv[])
+{
+	ulong	addr;
+	int	size;
+	char MSB,LSB;
+	void *buf;
+	int rc = 0;
+
+	/* We use the last specified parameters, unless new ones are
+	 * entered.
+	 */
+	//addr = dp_last_addr;
+	size = 4;
+
+	if (argc < 4)
+		return CMD_RET_USAGE;
+
+	if ((flag & CMD_FLAG_REPEAT) == 0) {
+		/* New command specified.  Check for a size specification.
+		 * Defaults to long if no or incorrect specification.
+		 */
+		if ((size = cmd_get_data_size(argv[0], 4)) < 0)
+			return 1;
+
+		/* Address is specified since argc > 1
+		*/
+		addr = hextoul(argv[1], NULL);
+		//addr += base_address;
+
+		/* If another parameter, it is the length to display.
+		 * Length is the number of objects, not number of bytes.
+		 */
+
+		MSB = dectoul(argv[2], NULL);
+		LSB = dectoul(argv[3], NULL);
+				
+		buf = map_sysmem(addr, 4);
+		if(buf)
+			printf("0x%lx[%02d:%02d]\t0x%lx\r\n\n", addr, MSB, LSB, (((*((u32 *)buf)) >> LSB) & (((unsigned long)0x1<<(MSB-LSB+1))-1)));
+		
+	}
+
+	return (rc);
+}
+
+static int do_mem_fk(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
+{
+	ulong writeval;  /* 64-bit if SUPPORT_64BIT_DATA */	
+	ulong	addr;
+	int	size;
+	void *buf;
+	unsigned long	tmp = 0;
+	char MSB,LSB;
+	int rc = 0;
+
+	if (argc < 5)
+		return CMD_RET_USAGE;
+
+	/* Check for size specification.
+	*/
+	if ((size = cmd_get_data_size(argv[0], 4)) < 1)
+		return 1;
+
+	/* Address is specified since argc > 1
+	*/
+	addr = hextoul(argv[1], NULL);
+
+	/* Get the value to write.
+	*/
+	
+	if (SUPPORT_64BIT_DATA)
+		writeval = simple_strtoull(argv[2], NULL, 16);
+	else
+		writeval = hextoul(argv[2], NULL);
+	
+	MSB = dectoul(argv[3], NULL);
+	LSB = dectoul(argv[4], NULL);
+	
+	 if((LSB > MSB) ||(MSB>31) ||(LSB>31))
+		printf("\r\n<MSB> <LSB> value invalid!\r\n");
+	else 
+	{
+		
+		buf = map_sysmem(addr, 4);
+		tmp = *((u32 *)buf);
+		
+		if((MSB == 31)&&(LSB == 0))
+		{
+			if(tmp != writeval)
+				printf("0x%lx[31:00]\t0x%lx, expect 0x%lx\r\n\n", addr, tmp, writeval);
+		}
+		else
+		{
+			tmp = (tmp>>LSB) & (((unsigned long)0x1<<(MSB-LSB+1))-1);
+			if(writeval !=  tmp)
+				printf("0x%lx[%02d:%02d]\t0x%lx, expect 0x%lx\r\n\n", addr, MSB, LSB, tmp, writeval);
+		}		
+		unmap_sysmem(buf);
+	}
+	return (rc);
+}
+
+static int do_mem_fw(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
+{
+	ulong writeval;  /* 64-bit if SUPPORT_64BIT_DATA */	
+	ulong	addr;
+	int	size;
+	void *buf;
+	unsigned long	tmp = 0;
+	char MSB,LSB;
+	int rc = 0;
+
+
+	if (argc < 5)
+		return CMD_RET_USAGE;
+
+	/* Check for size specification.
+	*/
+	if ((size = cmd_get_data_size(argv[0], 4)) < 1)
+		return 1;
+
+	/* Address is specified since argc > 1
+	*/
+	addr = hextoul(argv[1], NULL);
+
+	/* Get the value to write.
+	*/
+
+	if (SUPPORT_64BIT_DATA)
+		writeval = simple_strtoull(argv[2], NULL, 16);
+	else
+		writeval = hextoul(argv[2], NULL);
+	
+	MSB = dectoul(argv[3], NULL);
+	LSB = dectoul(argv[4], NULL);
+	
+	 if((LSB > MSB) ||(MSB>31) ||(LSB>31))
+		printf("\r\n<MSB> <LSB> value invalid!\r\n");
+	else 
+	{
+		buf = map_sysmem(addr, 4);
+		
+		if((MSB == 31)&&(LSB == 0))		
+			tmp = writeval;
+		else
+			tmp = (writeval<<LSB) | ((*((u32 *)buf)) & ~((((unsigned long)0x1<<(MSB-LSB+1))-1)<<LSB));		
+		
+		*((u32 *)buf) = (u32)tmp;
+		
+		unmap_sysmem(buf);
+	}
+
+	return (rc);
+}
+
 #ifdef CONFIG_CMD_MX_CYCLIC
 static int do_mem_mdc(struct cmd_tbl *cmdtp, int flag, int argc,
 		      char *const argv[])
@@ -1336,6 +1492,24 @@ U_BOOT_CMD(
 	mw,	4,	1,	do_mem_mw,
 	"memory write (fill)",
 	"[.b, .w, .l" HELP_Q "] address value [count]"
+);
+
+U_BOOT_CMD(
+	fd,	5,	0,	do_mem_fd,
+	"[MSB:LSB] field display",
+	"address MSB LSB [dummy_message]"
+);
+
+U_BOOT_CMD(
+	fw,	6,	0,	do_mem_fw,
+	"[MSB:LSB] field memory write",
+	"address value MSB LSB [dummy_message]"
+);
+
+U_BOOT_CMD(
+	fk,	6,	0,	do_mem_fk,
+	"[MSB:LSB] field memory check",
+	"address value MSB LSB [dummy_message]"
 );
 
 U_BOOT_CMD(

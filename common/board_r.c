@@ -67,10 +67,16 @@
 #include <efi_loader.h>
 #include <relocate.h>
 
+#ifdef TCSUPPORT_BOARD_SELECT
+#include <linux/string.h>
+#include <airoha/airoha_board.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 ulong monitor_flash_len;
 
+extern bool is_emmc(void);
 __weak int board_flash_wp_on(void)
 {
 	/*
@@ -463,6 +469,89 @@ static int initr_env(void)
 	return 0;
 }
 
+static int initr_gpt(void)
+{
+	char *gptenv = NULL;
+	struct blk_desc *blk_dev_desc = NULL;
+
+	if(!is_emmc() || (blk_dev_desc = blk_get_dev("mmc", 0)) == NULL) 
+	{
+		printf("%s: mmc dev 0 NOT available\n",__func__);
+		return 0;
+	}
+
+	/*1.try to repair*/
+	gpt_repair_headers(blk_dev_desc);
+	
+	/*2.verify with new partitions env*/
+	gptenv = env_get("partitions");
+	if(0 == gpt_verify(blk_dev_desc, gptenv))
+		return 0;
+	
+	printf("gpt info verify failed\n");
+	/*3.generate new gpt using new partitions env*/
+	if(gpt_default(blk_dev_desc, gptenv))
+		printf("gpt info write failed\n");
+	
+	return 0;
+}
+
+static int initr_gpio(void)
+{
+	int ret;
+	char *rst_gpio = NULL;
+	char *tmp = NULL;
+	char *token = NULL;
+	unsigned int gpio;
+	
+	rst_gpio = env_get("rst_gpio");
+	if(rst_gpio == NULL)
+		return 0;
+	
+	tmp = (char *)malloc(strlen(rst_gpio) + 1);	
+	if(tmp == NULL){
+		return -1;
+	}
+	strncpy(tmp, rst_gpio, strlen(rst_gpio));
+	
+	token = strtok(tmp,",");
+	
+	while(token != NULL) {
+		if(strcmp(token, "-1") == 0)
+		{
+			token = strtok(NULL,",");
+			continue;
+		}
+			
+		ret = gpio_lookup_name(token, NULL, NULL, &gpio);
+		if (ret) {
+			printf("initr_gpio: GPIO '%s' not found\n", token);
+			token = strtok(NULL, ",");
+			continue;
+		}
+
+		token = strtok(NULL, ",");
+		ret = gpio_request(gpio, "cmd_gpio");
+		if (ret && ret != -EBUSY) {
+			printf("initr_gpio: requesting gpio %u failed\n",gpio);
+			continue;
+		}
+		gpio_direction_output(gpio, 0);
+		ret = gpio_get_value(gpio);
+		printf("initr_gpio: value of gpio %u is %d\n", gpio,ret);
+
+		udelay(200000);
+	
+		gpio_direction_output(gpio, 1);
+		ret = gpio_get_value(gpio);
+		printf("initr_gpio: value of gpio %u is %d\n", gpio,ret);
+
+		gpio_free(gpio);
+	}
+	free(tmp);
+	return 0;
+}
+
 #ifdef CONFIG_SYS_MALLOC_BOOTPARAMS
 static int initr_malloc_bootparams(void)
 {
@@ -497,6 +586,142 @@ static int initr_scsi(void)
 	return 0;
 }
 #endif
+
+
+#ifdef TCSUPPORT_BOARD_SELECT
+static void get_board_id(RFB_ID_t* rfb_id)
+{
+	char efuse_read_cmd[30];
+	uint8_t id1_remark,id2_remark;
+	char value[256]={0};
+	uint32_t efuse_value;
+
+	snprintf(efuse_read_cmd, sizeof(efuse_read_cmd), "efuse READ %p 1", (void*)value);
+
+	run_command(efuse_read_cmd, 0);
+
+	efuse_value=((uint32_t*) value)[0];
+
+	id1_remark=(efuse_value>>ID1_REMARK_LSB)&ID1_REMARK_MASK;
+	id2_remark=(efuse_value>>ID2_REMARK_LSB)&ID2_REMARK_MASK;
+	
+	if(1==id1_remark){													/*check wether  id1_remark is 1 or not*/
+		rfb_id->id1=(efuse_value>>REMARKD_ID1_LSB)&REMARKD_ID1_MASK;   /*if it is 1 then return remarkd_id1*/			
+	}else{			
+		rfb_id->id1=(efuse_value>>ID1_LSB)&ID1_MASK;					/*otherwise return id1*/
+	}
+
+	if(1==id2_remark){												/*check wether  id2_remark is 1 or not*/
+		rfb_id->id2=(efuse_value>>REMARKD_ID2_LSB)&REMARKD_ID2_MASK; /*if it is 1 then return remarkd_id2*/			
+	}else{
+		rfb_id->id2=(efuse_value>>ID2_LSB)&ID2_MASK;				/*otherwise return id2*/
+	}
+}
+
+/*set rfb_id1/id2 into uboot env*/
+static void init_rfb_no(void)
+{
+	char buf[30];
+	char rfb_id1[ID1_LEN+1], rfb_id2[ID2_LEN+1];
+	RFB_ID_t rfb_id;
+	char *val;
+	char input_str[30];
+	char *find_target;
+	char *pos;
+	char boot_str_buf[128];
+	
+	get_board_id(&rfb_id);
+
+	snprintf(rfb_id1, sizeof(rfb_id1), "%x", rfb_id.id1);
+	printf("%s=%s\n", BOOTARGS_RFB_ID1_STR, rfb_id1);
+	env_set(BOOTARGS_RFB_ID1_STR, rfb_id1); 
+
+	snprintf(rfb_id2, sizeof(rfb_id2), "%02x", rfb_id.id2);
+	printf("%s=%s\n", BOOTARGS_RFB_ID2_STR, rfb_id2);
+	env_set(BOOTARGS_RFB_ID2_STR, rfb_id2); 
+
+	snprintf(buf, sizeof(buf), "rfb_%s%s", rfb_id1, rfb_id2);
+	if(NULL==env_get(buf)){
+		env_set("rfb_no", "rfb_defult"); 
+	}else{
+		env_set("rfb_no", buf);
+	}
+	/*printf("rfb_no=%s\n", env_get("rfb_no")); */
+
+	snprintf(buf, sizeof(buf), "%s", env_get(env_get("rfb_no")));
+	printf("rfb_cfg=%s\n", buf); 
+	env_set("rfb_cfg", buf);
+
+	val = env_get("bootcmd"); /*get bootcmd env param*/
+	/*Check if 'val' is valid and 'rfb_id.id1' is greater than 0*/
+	if(val && (rfb_id.id1 > 0)) {
+		memset(input_str, 0, sizeof(input_str));
+		memset(boot_str_buf, 0, sizeof(boot_str_buf));
+		find_target = "conf";
+		if(strstr(val, find_target) == NULL){ /*find the target = "conf" in bootcmd env param*/
+			find_target = "0x81800000";
+			pos = strstr(val, find_target); /*find the target = "0x81800000" in bootcmd env param, and get the position the header of the target*/
+			if(pos){
+				snprintf(input_str, sizeof(input_str), "%s%d;", "#conf-", (rfb_id.id1)); /*Construct input string as "#conf-<id>;"*/
+			} else{
+				find_target = "bootm";
+				pos = strstr(val, find_target); /*find the target = "bootm" in bootcmd env param, and get the position the header of the target*/
+				if(pos){
+					snprintf(input_str, sizeof(input_str), " %s%d;", "$loadaddr#conf-", (rfb_id.id1)); /*Construct input string as " $loadaddr#conf-<id>;"*/
+				}else{ /*cannot find the target = "bootm", position = NULL*/
+					snprintf(input_str, sizeof(input_str), "%s%d;", ";bootm $loadaddr#conf-", (rfb_id.id1)); /*Construct input string as ";bootm $loadaddr#conf-<id>;"*/
+					snprintf(boot_str_buf, sizeof(boot_str_buf), "%s%s", val, input_str); /*Concatenate bootcmd environment parameter and input string*/
+					env_set("bootcmd", boot_str_buf);
+					return;
+				}
+			}
+			/*e.g. current bootcmd env param, bootcmd=xxxx;bootm oooo*/
+			strncpy(boot_str_buf, val, (pos - val) + strlen(find_target)); /*Extract part of 'val' preceding the matched target, e.g. xxxx;bootm*/
+			strcpy(boot_str_buf + (pos - val) + strlen(find_target), input_str); /*Append input string to extracted part, e.g. xxxx;bootm $loadaddr#conf-3;*/
+			strcpy(boot_str_buf + (pos - val) + strlen(find_target)+strlen(input_str), pos + strlen(find_target)); /*Append remainder of 'val' starting from the end of the matched target, e.g. xxxx;bootm $loadaddr#conf-3;oooo*/
+
+			env_set("bootcmd", boot_str_buf);
+		}
+	}
+}
+
+static int init_serdes_env(void)
+{
+	char* serdes_bootargs[NUM_SERDES_ARGS] = {BOOTARGS_PON, BOOTARGS_ETH, BOOTARGS_WIFI1, BOOTARGS_WIFI2, BOOTARGS_USB1};
+	int i=0;
+	char buf[30];
+	char *token_str, *rfb_cfg;
+	const char* delim=",";
+
+	snprintf(buf, sizeof(buf), "%s", env_get("rfb_cfg"));
+	rfb_cfg=buf;
+
+	for(i=0;i<NUM_SERDES_ARGS;i++){
+		token_str=strsep(&rfb_cfg, delim);
+		if(NULL==token_str){
+			return -1;
+		}
+		printf("%s=%s\n",serdes_bootargs[i],token_str);
+		env_set(serdes_bootargs[i], token_str); 
+	}
+	return 0;
+
+}
+
+static int init_arht_rfb(void)
+{
+	int ret = 0;
+
+	/*initialize rfb env*/
+	init_rfb_no();
+	
+	/*initialize serdes env*/
+	ret=init_serdes_env();
+
+	return ret;
+}
+#endif
+
 
 #ifdef CONFIG_CMD_NET
 static int initr_net(void)
@@ -713,6 +938,10 @@ static init_fnc_t init_sequence_r[] = {
 	initr_pvblock,
 #endif
 	initr_env,
+#ifdef CONFIG_MMC
+	initr_gpt,
+#endif
+	initr_gpio,
 #ifdef CONFIG_SYS_MALLOC_BOOTPARAMS
 	initr_malloc_bootparams,
 #endif
@@ -768,6 +997,9 @@ static init_fnc_t init_sequence_r[] = {
 #endif
 #ifdef CONFIG_PCI_ENDPOINT
 	pci_ep_init,
+#endif
+#ifdef TCSUPPORT_BOARD_SELECT
+	init_arht_rfb,
 #endif
 #ifdef CONFIG_CMD_NET
 	INIT_FUNC_WATCHDOG_RESET

@@ -449,6 +449,7 @@ KBUILD_AFLAGS += $(CLANG_TARGET) $(CLANG_GCC_TC) $(CLANG_PREFIX)
 KBUILD_CFLAGS += $(call cc-option, -no-integrated-as)
 KBUILD_AFLAGS += $(call cc-option, -no-integrated-as)
 endif
+KBUILD_CFLAGS += $(SDK_FLAGS)
 
 # Don't generate position independent code
 KBUILD_CFLAGS	+= $(call cc-option,-fno-PIE)
@@ -712,6 +713,107 @@ KBUILD_CFLAGS	+= -Og -Wno-maybe-uninitialized
 KBUILD_CFLAGS	+= -Wno-maybe-uninitialized
 endif
 
+ifneq ($(strip $(TCSUPPORT_ARM_SECURE_BOOT)),)
+KBUILD_CFLAGS += -DTCSUPPORT_ARM_SECURE_BOOT
+endif
+
+ifneq ($(strip $(TCSUPPORT_ARM_SECURE_BOOT_FW_ENC)),)
+KBUILD_CFLAGS += -DTCSUPPORT_ARM_SECURE_BOOT_FW_ENC
+endif
+
+ifneq ($(strip $(TCSUPPORT_OPENWRT)),)
+KBUILD_CFLAGS += -DTCSUPPORT_OPENWRT
+endif
+
+ifneq ($(strip $(CONFIG_TARGET_AN7581)$(CONFIG_TARGET_AN7583)),)
+TCSUPPORT_CPU_ARMV8_64 := y
+export TCSUPPORT_CPU_ARMV8_64
+endif
+
+ifneq ($(strip $(TCSUPPORT_CPU_AN7583)),)
+KBUILD_CFLAGS += -DTCSUPPORT_CPU_AN7583
+endif
+
+ifneq ($(strip $(TCSUPPORT_BOARD_SELECT)),)
+KBUILD_CFLAGS += -DTCSUPPORT_BOARD_SELECT
+endif
+
+ifneq ($(strip $(TCSUPPORT_DM_VERITY)),)
+KBUILD_CFLAGS += -DTCSUPPORT_DM_VERITY
+endif
+
+ifneq ($(strip $(TCSUPPORT_DM_CRYPT)),)
+KBUILD_CFLAGS += -DTCSUPPORT_DM_CRYPT
+endif
+
+ifneq ($(strip $(TCSUPPORT_TCBOOT_1MB_SIZE)),)
+KBUILD_CFLAGS += -DTCSUPPORT_TCBOOT_1MB_SIZE
+endif
+
+ifneq ($(strip $(TCSUPPORT_OPTEE)),)
+KBUILD_CFLAGS += -DTCSUPPORT_OPTEE
+endif
+
+ifneq ($(strip $(CONFIG_TARGET_AN7552)),)
+TCSUPPORT_CPU_AN7552 := y
+export TCSUPPORT_CPU_AN7552
+endif
+
+ifneq ($(strip $(TCSUPPORT_CPU_AN7552)),)
+KBUILD_CFLAGS += -DTCSUPPORT_CPU_AN7552
+endif
+
+ifneq ($(strip $(TCSUPPORT_CHIP_VARIANT_CONFIG)),)
+KBUILD_CFLAGS += -DTCSUPPORT_CHIP_VARIANT_CONFIG
+endif
+
+ifneq ($(strip $(TCSUPPORT_HOST_SERVICE_MANAGER)),)
+KBUILD_CFLAGS += -DTCSUPPORT_HOST_SERVICE_MANAGER
+endif
+
+ifneq ($(strip $(TCSUPPORT_CF)),)
+KBUILD_CFLAGS += -DTCSUPPORT_CF
+endif
+
+ifneq ($(strip $(TCSUPPORT_XPON_HAL_API)),)
+KBUILD_CFLAGS += -DTCSUPPORT_XPON_HAL_API
+endif
+
+ifneq ($(strip $(TCSUPPORT_RESERVEAREA_BLOCK)),)
+KBUILD_CFLAGS += -DTCSUPPORT_RESERVEAREA_BLOCK=$(TCSUPPORT_RESERVEAREA_BLOCK)
+endif
+
+ifneq ($(strip $(TCSUPPORT_CT)),)
+KBUILD_CFLAGS+=-DTCSUPPORT_CT
+endif
+
+ifneq ($(strip $(TCSUPPORT_CT_PON)),)
+KBUILD_CFLAGS+=-DTCSUPPORT_CT_PON
+endif
+
+ifneq ($(strip $(TCSUPPORT_NAND_FLASH)),)
+KBUILD_CFLAGS+=-DTCSUPPORT_NAND_FLASH
+endif
+
+ifneq ($(strip $(TCSUPPORT_MTD_ENCHANCEMENT)),)
+KBUILD_CFLAGS+=-DTCSUPPORT_MTD_ENCHANCEMENT
+endif
+
+ifndef CONFIG_TARGET_EN7523
+TCSUPPORT_PARALLEL_NAND := y
+export TCSUPPORT_PARALLEL_NAND
+endif
+
+# Must stay after the assignment above: make expands ifneq at parse time.
+ifneq ($(strip $(TCSUPPORT_PARALLEL_NAND)),)
+KBUILD_CFLAGS+=-DTCSUPPORT_PARALLEL_NAND
+endif
+
+KBUILD_CFLAGS+=-DTCSUPPORT_UBOOT_2023
+#ifneq ($(strip $(TCSUPPORT_CT)),)
+#KBUILD_CFLAGS += $(BSP_CFLAGS)
+#endif
+
 LTO_CFLAGS :=
 LTO_FINAL_LDFLAGS :=
 export LTO_CFLAGS LTO_FINAL_LDFLAGS
@@ -815,6 +917,9 @@ KBUILD_HOSTCFLAGS += $(if $(CONFIG_TOOLS_DEBUG),-g)
 # Needed to be compatible with the O= option
 UBOOTINCLUDE    := \
 	-Iinclude \
+	-Idrivers/mtd/airoha-flash/legacy/ \
+	-I$(GLOBAL_INC_DIR) \
+	-I$(GLOBAL_INC_DIR)/modules \
 	$(if $(KBUILD_SRC), -I$(srctree)/include) \
 	$(if $(CONFIG_$(SPL_)SYS_THUMB_BUILD), \
 		$(if $(CONFIG_HAS_THUMB2), \
@@ -825,6 +930,16 @@ UBOOTINCLUDE    := \
 	-include $(srctree)/include/linux/kconfig.h
 
 NOSTDINC_FLAGS += -nostdinc -isystem $(shell $(CC) -print-file-name=include)
+
+ifneq ($(strip $(TCSUPPORT_NEW_SPI)),) # if defined.
+UBOOTINCLUDE += -DTCSUPPORT_NEW_SPI
+endif
+
+ifneq ($(INCLUDE_UIP_FWUPGRADE),)
+UBOOTINCLUDE += -I$(srctree)/uip/unix/
+UBOOTINCLUDE += -I$(srctree)/uip/uip/
+UBOOTINCLUDE += -I$(srctree)/uip/apps/webserver
+endif
 
 # FIX ME
 cpp_flags := $(KBUILD_CPPFLAGS) $(PLATFORM_CPPFLAGS) $(UBOOTINCLUDE) \
@@ -876,6 +991,10 @@ libs-$(CONFIG_UT_OVERLAY) += test/overlay/
 
 libs-y += $(if $(BOARDDIR),board/$(BOARDDIR)/)
 
+ifneq ($(INCLUDE_UIP_FWUPGRADE),)
+libs-y += uip/
+endif
+
 libs-y := $(sort $(libs-y))
 
 u-boot-dirs	:= $(patsubst %/,%,$(filter %/, $(libs-y))) tools examples
@@ -892,7 +1011,11 @@ u-boot-main := $(libs-y)
 ifeq ($(CONFIG_USE_PRIVATE_LIBGCC),y)
 PLATFORM_LIBGCC = arch/$(ARCH)/lib/lib.a
 else
+ifneq ($(strip $(RDKB_BUILD)),)
+PLATFORM_LIBGCC := -L $(shell dirname `$(CC) $(c_flags) -print-libgcc-file-name`)
+else
 PLATFORM_LIBGCC := -L $(shell dirname `$(CC) $(c_flags) -print-libgcc-file-name`) -lgcc
+endif
 endif
 PLATFORM_LIBS += $(PLATFORM_LIBGCC)
 

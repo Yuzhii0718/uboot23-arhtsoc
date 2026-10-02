@@ -123,6 +123,22 @@
 #include <net/tcp.h>
 #include <net/wget.h>
 
+#ifdef INCLUDE_UIP_FWUPGRADE
+#include <../uip/uip/uip.h>
+#include <../uip/uip/uip_arp.h>
+#include <../uip/uip/timer.h>
+
+#define BUF	((struct uip_eth_hdr *)&uip_buf[0])
+
+int g_web_start = 0;
+int g_netUipLoop = 0;
+static struct timer periodic_timer, arp_timer;
+
+void NetSendHttpd(void);
+void NetReceiveHttpd(volatile uchar *inpkt, int len);
+int NetLoopHttpd(void);
+#endif /* INCLUDE_UIP_FWUPGRADE */
+
 /** BOOTP EXTENTIONS **/
 
 /* Our subnet mask (0=unknown) */
@@ -201,7 +217,9 @@ static ulong	time_start;
 static ulong	time_delta;
 /* THE transmit packet */
 uchar *net_tx_packet;
-
+#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+extern void ecnt_ImageUpgrade(int fw_type);
+#endif
 static int net_check_prereq(enum proto_t protocol);
 
 static int net_try_count;
@@ -466,9 +484,6 @@ restart:
 	debug_cond(DEBUG_INT_STATE, "--- net_loop Init\n");
 	net_init_loop();
 
-	if (!test_eth_enabled())
-		return 0;
-
 	switch (net_check_prereq(protocol)) {
 	case 1:
 		/* network not configured */
@@ -688,6 +703,9 @@ restart:
 				       net_boot_file_size, net_boot_file_size);
 				env_set_hex("filesize", net_boot_file_size);
 				env_set_hex("fileaddr", image_load_addr);
+				#if CONFIG_IS_ENABLED(UBOOT_ARHT)
+					ecnt_ImageUpgrade(0);
+				#endif
 			}
 			if (protocol != NETCONS && protocol != NCSI)
 				eth_halt();
@@ -1173,9 +1191,25 @@ void net_process_received_packet(uchar *in_packet, int len)
 #if defined(CONFIG_CMD_PCAP)
 	pcap_post(in_packet, len, false);
 #endif
+
+#ifdef INCLUDE_UIP_FWUPGRADE
+	if (g_web_start)
+	{
+		NetReceiveHttpd(in_packet, len);
+		return;
+	}
+#endif /* INCLUDE_UIP_FWUPGRADE */
+
 	net_rx_packet = in_packet;
 	net_rx_packet_len = len;
 	et = (struct ethernet_hdr *)in_packet;
+
+#ifdef INCLUDE_UIP_FWUPGRADE
+	if (1 == g_netUipLoop)
+	{
+		return;
+	}
+#endif /* INCLUDE_UIP_FWUPGRADE */
 
 	/* too small packet? */
 	if (len < ETHER_HDR_SIZE)
@@ -1411,11 +1445,14 @@ void net_process_received_packet(uchar *in_packet, int len)
 		/*
 		 * IP header OK.  Pass the packet to the current handler.
 		 */
-		(*udp_packet_handler)((uchar *)ip + IP_UDP_HDR_SIZE,
-				      ntohs(ip->udp_dst),
-				      src_ip,
-				      ntohs(ip->udp_src),
-				      ntohs(ip->udp_len) - UDP_HDR_SIZE);
+		if(udp_packet_handler != NULL)
+		{
+			(*udp_packet_handler)((uchar *)ip + IP_UDP_HDR_SIZE,
+						  ntohs(ip->udp_dst),
+						  src_ip,
+						  ntohs(ip->udp_src),
+						  ntohs(ip->udp_len) - UDP_HDR_SIZE);
+		}
 		break;
 #ifdef CONFIG_CMD_WOL
 	case PROT_WOL:
@@ -1735,3 +1772,124 @@ ushort env_get_vlan(char *var)
 {
 	return string_to_vlan(env_get(var));
 }
+
+#ifdef INCLUDE_UIP_FWUPGRADE
+void NetSendHttpd(void)
+{
+	volatile uchar *tmpbuf = net_tx_packet;
+	int i = 0;
+
+	for (i = 0; i < uip_len; i++)
+	{
+		tmpbuf[i] = uip_buf[i];
+	}
+
+	eth_send(net_tx_packet, uip_len);
+}
+
+void NetReceiveHttpd(volatile uchar *inpkt, int len)
+{
+	memcpy(uip_buf, (const void *)inpkt, len);
+	uip_len = len;
+	int i = 0;
+
+	if (uip_len > 0)
+	{
+		if (BUF->type == htons(UIP_ETHTYPE_IP))
+		{
+			uip_arp_ipin();
+			uip_input();
+
+			if (uip_len > 0)
+			{
+				uip_arp_out();
+				NetSendHttpd();
+			}
+		}
+		else if (BUF->type == htons(UIP_ETHTYPE_ARP))
+		{
+			uip_arp_arpin();
+
+			if (uip_len > 0)
+			{
+				NetSendHttpd();
+			}
+		}
+	}
+	else if (timer_expired(&periodic_timer))
+	{
+		printf("In periodic_timer.\n");
+		timer_reset(&periodic_timer);
+
+		for (i = 0; i < UIP_CONNS; i++)
+		{
+			uip_periodic(i);
+			if (uip_len > 0)
+			{
+				uip_arp_out();
+				NetSendHttpd();
+			}
+		}
+
+		if (timer_expired(&arp_timer))
+		{
+			timer_reset(&arp_timer);
+			uip_arp_timer();
+		}
+	}
+}
+
+int NetLoopHttpd(void)
+{
+	int ret = -1;
+	uip_ipaddr_t ipaddr;
+
+	timer_set(&periodic_timer, CLOCK_SECOND / 2);
+	timer_set(&arp_timer, CLOCK_SECOND * 10);
+
+	bootstage_mark_name(BOOTSTAGE_ID_ETH_START, "eth_start");
+	net_init();
+	if (eth_is_on_demand_init()) {
+		eth_halt();
+		eth_set_current();
+
+		if (eth_init() < 0) {
+			eth_halt();
+			return -1;
+		}
+
+		net_dev_exists  = 1;
+		net_boot_file_size  = 0;
+	}
+	else
+	{
+		eth_init_state_only();
+	}
+
+	uip_init();
+
+	struct uip_eth_addr ethaddr = {{0x11,0x22,0x33,0x77,0x88,0x99}};
+
+	uip_setethaddr(ethaddr);
+
+	uip_ipaddr(ipaddr, 192,168,1,1);
+	uip_sethostaddr(ipaddr);
+
+	httpd_init();
+
+	while(1)
+	{
+		eth_rx();
+
+		if (ctrlc()) {
+			eth_halt();
+			g_web_start = 0;
+			puts("\nAbort\n");
+			break;
+		}
+	}
+
+	return ret;
+}
+#endif /* INCLUDE_UIP_FWUPGRADE */
+

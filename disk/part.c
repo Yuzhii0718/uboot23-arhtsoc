@@ -230,8 +230,11 @@ void part_init(struct blk_desc *dev_desc)
 	dev_desc->part_type = PART_TYPE_UNKNOWN;
 	for (entry = drv; entry != drv + n_ents; entry++) {
 		int ret;
-
+#ifndef CONFIG_TPL_BUILD
 		ret = entry->test(dev_desc);
+#else
+		ret = -1;
+#endif
 		debug("%s: try '%s': ret=%d\n", __func__, entry->name, ret);
 		if (!ret) {
 			dev_desc->part_type = entry->part_type;
