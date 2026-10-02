@@ -1,0 +1,7 @@
+EN7552
+M:	Shubham Jain <shubham.jain@airoha.com>
+M:	Zhengping Zhang <zhengping.zhang@airoha.com>
+S:	Maintained
+F:	board/airoha/en7552
+F:	include/configs/en7552.h
+F:	configs/en7552_evb_defconfig

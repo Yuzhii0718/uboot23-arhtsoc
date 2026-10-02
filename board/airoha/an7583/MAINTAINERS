@@ -1,0 +1,6 @@
+AN7583
+M:	Shubham JAin <shubham.jain@airoha.com>
+S:	Maintained
+F:	board/airoha/an7583
+F:	include/configs/an7583.h
+F:	configs/an7583_evb_defconfig

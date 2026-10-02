@@ -1,0 +1,7 @@
+EN7523
+M:	Shubham Jain <shubham.jain@airoha.com>
+M:	Zhengping Zhang <zhengping.zhang@airoha.com>
+S:	Maintained
+F:	board/airoha/en7523
+F:	include/configs/en7523.h
+F:	configs/en7523_evb_defconfig

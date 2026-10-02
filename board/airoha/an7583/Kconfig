@@ -1,0 +1,12 @@
+if TARGET_AN7583
+
+config SYS_BOARD
+       default "an7583"
+
+config SYS_VENDOR
+       default "airoha"
+
+config SYS_CONFIG_NAME
+       default "an7583"
+
+endif
