@@ -314,6 +314,7 @@ config CPU_V7A
 	select HAS_VBAR
 	select SYS_CACHE_SHIFT_6
 	imply SYS_ARM_MMU
+	imply SPL_SEPARATE_BSS
 
 config CPU_V7M
 	bool
@@ -1012,6 +1013,7 @@ config ARCH_AIROHA
 	bool "Airoha SoCs"
 	select DM
 	select OF_CONTROL
+	select TPL_DM_MMC if TPL_MMC
 	help
 	  Support for the Airoha soc.
 

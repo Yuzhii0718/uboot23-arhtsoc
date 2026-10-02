@@ -1,0 +1,125 @@
+if ARCH_AIROHA
+
+config SYS_SOC
+	default "airoha"
+
+config SYS_VENDOR
+	default "airoha"
+
+choice
+	prompt "Airoha board select"
+
+config TARGET_AN7552
+	bool "Airoha AN7552 SoC"
+	select CPU_V7A
+	help
+	  The Airoha AN is a highly integrated XGGPON/XEEPON ARM-based SoC with a dual-core cpu
+	  for broadband applications. It shares several logic units with EN7523
+		
+config TARGET_EN7523
+	bool "Airoha EN7523 SoC"
+	select CPU_V7A
+	help
+	  The Airoha EN7523 is a highly integrated GPON/EPON ARM-based SoC with a dual-core cpu
+	  for broadband applications.  It comes with wifi 5/6 support and connectivity to Ethernet
+		Phy,DDR,PCIe,USB,UART and Voip. With advanced hardware design, EN7523 provides high 
+		processing performance and low power consumption
+
+config TARGET_AN7581
+	bool "Airoha AN7581 SoC"
+	select ARM64
+	help
+	  The Airoha EN7581 is a ARM-based SoC with a quad-core Cortex-A7
+	  including NEON and GPU, Mali-450 graphics, several DDR3 options,
+	  crypto engine, built-in Wi-Fi / Bluetooth combo chip, JPEG decoder,
+	  video interfaces supporting HDMI and MIPI, and video codec support.
+	  Peripherals include Gigabit Ethernet, switch, USB3.0 and OTG, PCIe,
+	  I2S, PCM, S/PDIF, UART, SPI, I2C, IR TX/RX, and PWM.
+
+
+config TARGET_AN7583
+	bool "Airoha AN7583 SoC"
+	select ARM64
+	help
+	  The Airoha AN7583 is a ARM-based SoC with a dual-core Cortex-A7
+	  including NEON and GPU, Mali-450 graphics, several DDR3 options,
+	  crypto engine, built-in Wi-Fi / Bluetooth combo chip, JPEG decoder,
+	  video interfaces supporting HDMI and MIPI, and video codec support.
+	  Peripherals include Gigabit Ethernet, switch, USB3.0 and OTG, PCIe,
+	  I2S, PCM, S/PDIF, UART, SPI, I2C, IR TX/RX, and PWM.
+
+endchoice
+
+config TARGET_AN7581_RDKF
+	bool "Airoha AN7581 SoC for DT"
+	select ARM64
+	select SUPPORT_SPL
+	select SUPPORT_TPL
+	help
+	  The Airoha EN7581 is a ARM-based SoC with a quad-core Cortex-A7
+	  including NEON and GPU, Mali-450 graphics, several DDR3 options,
+	  crypto engine, built-in Wi-Fi / Bluetooth combo chip, JPEG decoder,
+	  video interfaces supporting HDMI and MIPI, and video codec support.
+	  Peripherals include Gigabit Ethernet, switch, USB3.0 and OTG, PCIe,
+	  I2S, PCM, S/PDIF, UART, SPI, I2C, IR TX/RX, and PWM.
+
+config SYS_BOARD
+	string "Board name"
+	default "en7523" if TARGET_EN7523
+	default "an7581" if TARGET_AN7581
+	default "an7552" if TARGET_AN7552
+	default "an7583" if TARGET_AN7583
+	default ""
+	help
+	  This option contains information about board name.
+	  Based on this option board/<CONFIG_SYS_VENDOR>/<CONFIG_SYS_BOARD> will
+	  be used.
+	  
+config SYS_CONFIG_NAME
+	string "Board configuration name"
+	default "en7523" if TARGET_EN7523
+	default "an7581" if TARGET_AN7581
+	default "an7552" if TARGET_AN7552
+	default "an7583" if TARGET_AN7583
+	default ""
+	help
+	  This option contains information about board configuration name.
+	  Based on this option include/configs/<CONFIG_SYS_CONFIG_NAME>.h header
+	  will be used for board configuration.
+		
+config ARHT_BROM_HEADER_INFO
+	string
+	default "media=snand;nandinfo=2k+64" if TARGET_AN7581 || TARGET_EN7523 || TARGET_AN7552 || TARGET_AN7583
+
+config UBOOT_ARHT
+	bool "UBOOT_ARHT" 
+	default "y"
+	help
+	  Uboot Airoha Config
+
+config SYS_UBOOT_PARTITION_NAME
+	string "partition name of uboot"
+	default "bootloader"
+
+
+config SYS_TCLINUX_PARTITION_NAME
+	string "partition name of tclinux"
+	default "tclinux"
+
+
+config SYS_TCLINUX_SLAVE_PARTITION_NAME
+	string "partition name of tclinux_slave"
+	default "tclinux_slave"
+
+config SYS_ART_PARTITION_NAME
+	string "partition name of reserve area"
+	default "art"
+
+config TARGET_AN7552_TPL
+	bool "Airoha AN7552 SoC for TPL option"
+	select SUPPORT_SPL
+	select SUPPORT_TPL
+	help
+	  Config for 7552 TPL.	
+endif
+

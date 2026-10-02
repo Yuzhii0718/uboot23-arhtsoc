@@ -60,12 +60,22 @@ SECTIONS
 
 	_image_binary_end = .;
 
-	.bss __rel_dyn_start (OVERLAY) : {
-		__bss_start = .;
+	. = 0x1e820000;
+
+	.bss_start (NOLOAD) : {
+		. = ALIGN(4);
+		KEEP(*(.__bss_start));
+	}
+
+	.bss (NOLOAD) : {
 		*(.bss*)
 		 . = ALIGN(4);
-		__bss_end = .;
 	}
+
+	.bss_end (NOLOAD) : {
+		KEEP(*(.__bss_end));
+	}
+
 	__bss_size = __bss_end - __bss_start;
 	.dynsym _image_binary_end : { *(.dynsym) }
 	.dynbss : { *(.dynbss) }
@@ -78,17 +88,17 @@ SECTIONS
 	.ARM.exidx : { *(.ARM.exidx*) }
 }
 
-#if defined(IMAGE_MAX_SIZE)
-ASSERT(__image_copy_end - __image_copy_start <= (IMAGE_MAX_SIZE), \
-	"SPL image too big");
+#if defined(CONFIG_TPL_MAX_SIZE)
+ASSERT(__image_copy_end - __image_copy_start < (CONFIG_TPL_MAX_SIZE), \
+	"TPL image too big");
 #endif
 
-#if defined(CONFIG_SPL_BSS_MAX_SIZE)
-ASSERT(__bss_end - __bss_start <= (CONFIG_SPL_BSS_MAX_SIZE), \
-	"SPL image BSS too big");
+#if defined(CONFIG_TPL_BSS_MAX_SIZE)
+ASSERT(__bss_end - __bss_start < (CONFIG_TPL_BSS_MAX_SIZE), \
+	"TPL image BSS too big");
 #endif
 
-#if defined(CONFIG_SPL_MAX_FOOTPRINT)
-ASSERT(__bss_end - _start <= (CONFIG_SPL_MAX_FOOTPRINT), \
-	"SPL image plus BSS too big");
+#if defined(CONFIG_TPL_MAX_FOOTPRINT)
+ASSERT(__bss_end - _start < (CONFIG_TPL_MAX_FOOTPRINT), \
+	"TPL image plus BSS too big");
 #endif
