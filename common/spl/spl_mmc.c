@@ -16,6 +16,57 @@
 #include <errno.h>
 #include <mmc.h>
 #include <image.h>
+#include <ecnt_flash.h>
+#include <env.h>
+
+#define BOOTFLAG_BLK_OFFSET 0x1a00UL
+
+#ifdef CONFIG_TPL_ENV_SUPPORT
+static int fix_gpt_info(struct mmc *mmc)
+{
+	if(env_init() || env_load())
+		return -1;
+
+	char *partitions = env_get("partitions");
+	if(!partitions)
+		return -1;
+
+	debug("%s:partitions=%s\n",__func__, partitions);
+	if(gpt_default(mmc_get_blk_desc(mmc), partitions))
+	{
+		printf("%s: write gpt failed\n",__func__);
+		return -1;
+	}
+
+	debug("%s: write gpt success\n",__func__);	
+	return 0;
+}
+#endif
+
+static int spl_mmc_get_bootflag(struct mmc *mmc, void *buf)
+{
+	int partnum = -1;
+	struct disk_partition info;
+	ulong count, sector = 0;
+	struct blk_desc *bd = mmc_get_blk_desc(mmc);
+
+	partnum = part_get_info_by_name(bd, "art", &info);
+	if(partnum < 0)
+	{
+		printf("%s: fail to find art partition\n",__func__);
+		return -1;
+	}
+
+	sector = info.start + BOOTFLAG_BLK_OFFSET;
+	debug("%s: sector start = %llX, block size = %lu, partnum = %d\n",__func__, sector, info.blksz, partnum);
+
+	count = blk_dread(bd, sector, 1, buf);
+	if(count != 1)
+		return -1;
+
+	return 0;
+}
+
 
 static int mmc_load_legacy(struct spl_image_info *spl_image,
 			   struct spl_boot_device *bootdev,
@@ -27,7 +78,9 @@ static int mmc_load_legacy(struct spl_image_info *spl_image,
 	unsigned long count;
 	u32 image_offset;
 	int ret;
-
+	/*not used*/
+	return -1;
+	
 	ret = spl_parse_image_header(spl_image, bootdev, header);
 	if (ret)
 		return ret;
@@ -97,7 +150,7 @@ int mmc_load_image_raw_sector(struct spl_image_info *spl_image,
 		goto end;
 	}
 
-	if (IS_ENABLED(CONFIG_SPL_LOAD_FIT) &&
+	if ((IS_ENABLED(CONFIG_SPL_LOAD_FIT) || IS_ENABLED(CONFIG_TPL_LOAD_FIT)) &&
 	    image_get_magic(header) == FDT_MAGIC) {
 		struct spl_load_info load;
 
@@ -214,11 +267,11 @@ static int mmc_load_image_raw_partition(struct spl_image_info *spl_image,
 		return -1;
 	}
 
-#ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-	return mmc_load_image_raw_sector(spl_image, bootdev, mmc, info.start + sector);
-#else
+//#ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
+//	return mmc_load_image_raw_sector(spl_image, bootdev, mmc, info.start + sector);
+//#else
 	return mmc_load_image_raw_sector(spl_image, bootdev, mmc, info.start);
-#endif
+//#endif
 }
 #endif
 
@@ -420,6 +473,9 @@ int spl_mmc_load(struct spl_image_info *spl_image,
 	int err = 0;
 	__maybe_unused int part = 0;
 	int mmc_dev;
+	unsigned char *readflag = spl_get_load_buffer(-sizeof(struct legacy_img_hdr)-32, 0);
+	unsigned char *need_swap = (unsigned char *)KERNEL_LOAD_ADDR; /*kernel load address(not used in tpl),put two u-char here*/
+	unsigned char *bootflag = need_swap + 1;
 
 	/* Perform peripheral init only once for an mmc device */
 	mmc_dev = spl_mmc_get_device_index(bootdev->boot_device);
@@ -467,18 +523,80 @@ int spl_mmc_load(struct spl_image_info *spl_image,
 
 		raw_sect = spl_mmc_get_uboot_raw_sector(mmc, raw_sect);
 
+		if(unlikely(spl_mmc_get_bootflag(mmc, readflag)))
+		{
+#ifdef CONFIG_TPL_ENV_SUPPORT
+			/*
+				No partition exist Or gpt has corrupt
+				Fix gpt and re read bootflag
+			*/
+			if(fix_gpt_info(mmc) || spl_mmc_get_bootflag(mmc, readflag))
+#endif
+				goto try1;
+		}
+
+		debug("%s:bootflag = %c\n", __func__, *readflag);
+		if(*readflag == '1')
+			raw_part += 2;//partiton 1: bootloader , partition 2:tclinux , partition 3:filesystem , partition 4:tclinux_slave
 #ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION
+		if(raw_part != CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_PARTITION)
+			printf("boot from slave\n");
+		else
+			printf("boot from master\n");
+
 		err = mmc_load_image_raw_partition(spl_image, bootdev,
 						   mmc, raw_part,
 						   raw_sect);
-		if (!err)
+		if (!err){
+			/*no need to swap bootflag*/
+			*need_swap = '0';
 			return err;
+		}
+		else
+		{
+			if(*readflag == '0')
+			{
+				raw_part = CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_PARTITION + 2;
+				*bootflag = '1';
+			}
+			else
+			{
+				raw_part = CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_PARTITION;
+				*bootflag = '0';
+			}
+
+			/*Need to swap bootflag*/
+			*need_swap = '1';
+
+			printf("Reloading...from %s\n", *bootflag=='1'?"slave":"master");
+			err = mmc_load_image_raw_partition(spl_image, bootdev,
+							   mmc, raw_part,
+							   raw_sect);
+
+			/*have already tried loading both master and slave, won't try any more*/
+			return err;
+		}
 #endif
 #ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
+		/*use this for gpt not exist or corrupt*/
+try1:
+		/*Maybe need to swap bootflag*/
+		*need_swap = '1';
 		err = mmc_load_image_raw_sector(spl_image, bootdev, mmc,
 				raw_sect + spl_mmc_raw_uboot_offset(part));
 		if (!err)
+		{
+			/*TPL boot with bootflag 0*/
+			*bootflag = '0';
 			return err;
+		}
+try2:
+		err = mmc_load_image_raw_sector(spl_image, bootdev, mmc,
+				raw_sect + UL(0x1E000) + spl_mmc_raw_uboot_offset(part));
+		/*TPL boot with bootflag 1*/
+		*bootflag = '1';
+		/*have already tried loading both master and slave, won't try any more*/
+		return err;
 #endif
 		/* If RAW mode fails, try FS mode. */
 	case MMCSD_MODE_FS:

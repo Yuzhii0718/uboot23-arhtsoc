@@ -1,6 +1,141 @@
 menu "TPL configuration options"
 	depends on TPL
 
+config FIT
+	bool "Support Flattened Image Tree"
+	select HASH
+	select MD5
+	select SHA1
+	imply SHA256
+	help
+	  This option allows you to boot the new uImage structure,
+	  Flattened Image Tree.  FIT is formally a FDT, which can include
+	  images of various types (kernel, FDT blob, ramdisk, etc.)
+	  in a single blob.  To boot this new uImage structure,
+	  pass the address of the blob to the "bootm" command.
+	  FIT is very flexible, supporting compression, multiple images,
+	  multiple configurations, verification through hashing and also
+	  verified boot (secure boot using RSA).
+
+config TIMESTAMP
+	bool "Show image date and time when displaying image information"
+	default y if CMD_DATE
+	help
+	  When CONFIG_TIMESTAMP is selected, the timestamp (date and time) of
+	  an image is printed by image commands like bootm or iminfo. This
+	  is shown as 'Timestamp: xxx' and 'Created: xxx'. If this option is
+	  enabled, then U-Boot requires FITs to have a timestamp. If a FIT is
+	  loaded that does not, the message 'Wrong FIT format: no timestamp'
+	  is shown.
+
+config FIT_EXTERNAL_OFFSET
+	hex "FIT external data offset"
+	depends on FIT
+	default 0x0
+	help
+	  This specifies a data offset in fit image.
+	  The offset is from data payload offset to the beginning of
+	  fit image header. When specifies a offset, specific data
+	  could be put in the hole between data payload and fit image
+	  header, such as CSF data on i.MX platform.
+
+config FIT_FULL_CHECK
+	bool "Do a full check of the FIT before using it"
+	depends on FIT
+	default y
+	help
+	  Enable this do a full check of the FIT to make sure it is valid. This
+	  helps to protect against carefully crafted FITs which take advantage
+	  of bugs or omissions in the code. This includes a bad structure,
+	  multiple root nodes and the like.
+
+config IMAGE_SIGN_INFO
+	bool
+	select SHA1
+	select SHA256
+	help
+	  Enable image_sign_info helper functions.
+
+if IMAGE_SIGN_INFO
+
+config SPL_IMAGE_SIGN_INFO
+	bool
+	select SHA1
+	select SHA256
+	help
+	  Enable image_sign_info helper functions in SPL.
+
+config TPL_IMAGE_SIGN_INFO
+	bool
+	select SHA1
+	select SHA256
+	help
+	  Enable image_sign_info helper functions in TPL.
+
+endif
+
+config FIT_SIGNATURE
+	bool "Enable signature verification of FIT uImages"
+	depends on DM && FIT
+	select HASH
+	imply RSA
+	imply RSA_VERIFY
+	select IMAGE_SIGN_INFO
+	select FIT_FULL_CHECK
+	help
+	  This option enables signature verification of FIT uImages,
+	  using a hash signed and verified using RSA. If
+	  CONFIG_SHA_PROG_HW_ACCEL is defined, i.e support for progressive
+	  hashing is available using hardware, then the RSA library will use
+	  it. See doc/uImage.FIT/signature.txt for more details.
+
+	  WARNING: When relying on signed FIT images with a required signature
+	  check the legacy image format is disabled by default, so that
+	  unsigned images cannot be loaded. If a board needs the legacy image
+	  format support in this case, enable it using
+	  CONFIG_LEGACY_IMAGE_FORMAT.
+
+config TPL_FIT_SIGNATURE
+	bool "Enable signature verification of FIT uImages"
+	depends on TPL_DM && TPL_FIT
+	select TPL_HASH
+	imply TPL_RSA
+	imply TPL_RSA_VERIFY
+	select TPL_IMAGE_SIGN_INFO
+	select TPL_FIT_FULL_CHECK
+	help
+	  This option enables signature verification of FIT uImages,
+	  using a hash signed and verified using RSA. If
+	  CONFIG_SHA_PROG_HW_ACCEL is defined, i.e support for progressive
+	  hashing is available using hardware, then the RSA library will use
+	  it. See doc/uImage.FIT/signature.txt for more details.
+
+	  WARNING: When relying on signed FIT images with a required signature
+	  check the legacy image format is disabled by default, so that
+	  unsigned images cannot be loaded. If a board needs the legacy image
+	  format support in this case, enable it using
+	  CONFIG_LEGACY_IMAGE_FORMAT.
+
+config FIT_SIGNATURE_MAX_SIZE
+	hex "Max size of signed FIT structures"
+	depends on FIT_SIGNATURE
+	default 0x10000000
+	help
+	  This option sets a max size in bytes for verified FIT uImages.
+	  A sane value of 256MB protects corrupted DTB structures from overlapping
+	  device memory. Assure this size does not extend past expected storage
+	  space.
+
+config TPL_FIT_SIGNATURE_MAX_SIZE
+	hex "Max size of signed FIT structures"
+	depends on TPL_FIT_SIGNATURE
+	default 0x10000000
+	help
+	  This option sets a max size in bytes for verified FIT uImages.
+	  A sane value of 256MB protects corrupted DTB structures from overlapping
+	  device memory. Assure this size does not extend past expected storage
+	  space.
+
 config TPL_SIZE_LIMIT
 	hex "Maximum size of TPL image"
 	default 0x0
@@ -19,6 +154,21 @@ config TPL_BINMAN_SYMBOLS
 	  binman_sym(type, entry, prop) macro defined in binman_sym.h.
 
 	  See tools/binman/binman.rst for a detailed explanation.
+
+config TPL_ATF_NO_PLATFORM_PARAM
+        bool "Pass no platform parameter"
+        depends on TPL_ATF
+        help
+          While we expect to call a pointer to a valid FDT (or NULL)
+          as the platform parameter to an ATF, some ATF versions are
+          not U-Boot aware and have an insufficiently robust parameter
+          validation to gracefully reject a FDT being passed.
+
+          If this option is enabled, the spl_atf os-type handler will
+          always pass NULL for the platform parameter.
+
+          If your ATF is affected, say Y.
+
 
 config TPL_BINMAN_UBOOT_SYMBOLS
 	bool "Declare binman symbols for U-Boot phases in TPL"
@@ -232,6 +382,23 @@ config TPL_MMC
 	help
 	  Enable support for MMC within TPL. See SPL_MMC for details.
 
+config TPL_MMC_WRITE
+	bool "MMC/SD/SDIO card support for write operations in TPL"
+	depends on TPL_MMC
+	help
+	  Enable write access to MMC and SD Cards in TPL	  
+
+config TPL_DM_MMC
+	bool "Enable MMC controllers using Driver Model in TPL"
+	depends on TPL_DM && DM_MMC
+	default y
+	help
+	  This enables the MultiMediaCard (MMC) uclass which supports MMC and
+	  Secure Digital I/O (SDIO) cards. Both removable (SD, micro-SD, etc.)
+	  and non-removable (e.g. eMMC chip) devices are supported. These
+	  appear as block devices in U-Boot and can support filesystems such
+	  as EXT4 and FAT.
+
 config TPL_NAND_SUPPORT
 	bool "Support NAND flash"
 	help
@@ -284,6 +451,11 @@ config TPL_SERIAL
 	  Enable support for serial in TPL. See SPL_SERIAL for
 	  details.
 
+config TPL_UBOOT_ARHT
+	bool "Support ARHT wrapper code"
+	help
+	  Enable support for some spi nand flash api wrapper.
+
 config TPL_SPI_FLASH_SUPPORT
 	bool "Support SPI flash drivers"
 	help
@@ -299,6 +471,11 @@ config TPL_SPI_FLASH_TINY
 	 data/images from flash. No support to write/erase flash. Enable
 	 this if you have TPL size limitations and don't need full-fledged
 	 SPI flash support.
+
+config TPL_SPI_FLASH_MTD
+	bool "Support for SPI flash MTD drivers in SPL"
+	help
+	  Enable support for SPI flash MTD drivers in SPL.
 
 config TPL_SPI_LOAD
 	bool "Support loading from SPI flash"
@@ -332,4 +509,196 @@ config TPL_YMODEM_SUPPORT
 	  means of transmitting U-Boot over a serial line for using in TPL,
 	  with a checksum to ensure correctness.
 
+config TPL_PARTITIONS
+	bool
+	help
+	  Enable this for base partition support in TPL. The required
+	  partition table types shold be enabled separately. This adds a
+	  small amount of size to TPL, typically 500 bytes.
+
+config TPL_EFI_PARTITION
+	bool "Enable EFI GPT partition table for TPL"
+	depends on  TPL
+	select TPL_PARTITIONS
+
+config TPL_PARTITION_UUIDS
+	bool "Enable support of UUID for partition in TPL"
+	depends on TPL_PARTITIONS
+	default y if TPL_EFI_PARTITION
+
+config TPL_ATF
+	bool "Support ARM Trusted Firmware"
+	depends on TPL_LOAD_FIT && !TPL_FIT_IMAGE_TINY
+	help
+	  ATF(ARM Trusted Firmware) is a component for ARM AArch64 which
+	  is loaded by SPL (which is considered as BL2 in ATF terminology).
+	  More detail at: https://github.com/ARM-software/arm-trusted-firmware
+
+config RSA
+	bool "Use RSA Library"
+	select RSA_FREESCALE_EXP if FSL_CAAM && !ARCH_MX7 && !ARCH_MX7ULP && !ARCH_MX6 && !ARCH_MX5
+	select RSA_ASPEED_EXP if ASPEED_ACRY
+	select RSA_SOFTWARE_EXP if !RSA_FREESCALE_EXP && !RSA_ASPEED_EXP
+	help
+	  RSA support. This enables the RSA algorithm used for FIT image
+	  verification in U-Boot.
+	  See doc/uImage.FIT/signature.txt for more details.
+	  The Modular Exponentiation algorithm in RSA is implemented using
+	  driver model. So CONFIG_DM needs to be enabled by default for this
+	  library to function.
+	  The signing part is build into mkimage regardless of this
+	  option. The software based modular exponentiation is built into
+	  mkimage irrespective of this option.
+
+if RSA
+config SHA1
+	bool "Enable SHA1 support"
+	help
+	  This option enables support of hashing using SHA1 algorithm.
+	  The hash is calculated in software.
+	  The SHA1 algorithm produces a 160-bit (20-byte) hash value
+	  (digest).
+
+config SHA256
+	bool "Enable SHA256 support"
+	help
+	  This option enables support of hashing using SHA256 algorithm.
+	  The hash is calculated in software.
+	  The SHA256 algorithm produces a 256-bit (32-byte) hash value
+	  (digest).
+
+config SHA512
+	bool "Enable SHA512 support"
+	help
+	  This option enables support of hashing using SHA512 algorithm.
+	  The hash is calculated in software.
+	  The SHA512 algorithm produces a 512-bit (64-byte) hash value
+	  (digest).
+
+config TPL_ENC
+	bool "Support mbedtls encryption"
+	help
+	  Enable encryption with mbedtls 
+
+config ARHT_MBEDTPLS_CIPHER
+	bool "Support mbedtls encryption in airoha way"
+	help
+	  Enable encryption with mbedtls (airoha)
+
+
+config TPL_CRYPTO
+	bool "Support crypto drivers"
+	help
+	  Enable crypto drivers in SPL. These drivers can be used to
+	  accelerate secure boot processing in secure applications. Enable
+	  this option to build the drivers in drivers/crypto as part of an
+	  SPL build.
+
+config TPL_HASH
+	bool # "Support hashing API (SHA1, SHA256, etc.)"
+	help
+	  This provides a way to hash data in memory using various supported
+	  algorithms (such as SHA1, MD5, CRC32). The API is defined in hash.h
+	  and the algorithms it supports are defined in common/hash.c. See
+	  also CMD_HASH for command-line access.
+
+config TPL_SHA1
+	bool "Enable SHA1 support"
+	help
+	  This option enables support of hashing using SHA1 algorithm.
+	  The hash is calculated in software.
+	  The SHA1 algorithm produces a 160-bit (20-byte) hash value
+	  (digest).
+
+config TPL_SHA256
+	bool "Enable SHA256 support"
+	help
+	  This option enables support of hashing using SHA256 algorithm.
+	  The hash is calculated in software.
+	  The SHA256 algorithm produces a 256-bit (32-byte) hash value
+	  (digest).
+
+config TPL_SHA512
+	bool "Enable SHA512 support"
+	help
+	  This option enables support of hashing using SHA512 algorithm.
+	  The hash is calculated in software.
+	  The SHA512 algorithm produces a 512-bit (64-byte) hash value
+	  (digest).
+
+config TPL_RSA
+	bool "Use RSA Library within TPL"
+	depends on TPL
+
+config TPL_RSA_VERIFY
+	bool
+	depends on TPL_RSA
+	help
+	  Add RSA signature verification support in TPL.
+
+config RSA_VERIFY
+	bool
+	help
+	  Add RSA signature verification support.
+
+config RSA_VERIFY_WITH_PKEY
+	bool "Execute RSA verification without key parameters from FDT"
+	select RSA_VERIFY
+	select ASYMMETRIC_KEY_TYPE
+	select ASYMMETRIC_PUBLIC_KEY_SUBTYPE
+	select RSA_PUBLIC_KEY_PARSER
+	help
+	  The standard RSA-signature verification code (FIT_SIGNATURE) uses
+	  pre-calculated key properties, that are stored in fdt blob, in
+	  decrypting a signature.
+	  This does not suit the use case where there is no way defined to
+	  provide such additional key properties in standardized form,
+	  particularly UEFI secure boot.
+	  This options enables RSA signature verification with a public key
+	  directly specified in image_sign_info, where all the necessary
+	  key properties will be calculated on the fly in verification code.
+
+config SPL_RSA_VERIFY_WITH_PKEY
+	bool "Execute RSA verification without key parameters from FDT within SPL"
+	depends on SPL
+	select SPL_RSA_VERIFY
+	select SPL_ASYMMETRIC_KEY_TYPE
+	select SPL_ASYMMETRIC_PUBLIC_KEY_SUBTYPE
+	select SPL_RSA_PUBLIC_KEY_PARSER
+	help
+	  The standard RSA-signature verification code (FIT_SIGNATURE) uses
+	  pre-calculated key properties, that are stored in fdt blob, in
+	  decrypting a signature.
+	  This does not suit the use case where there is no way defined to
+	  provide such additional key properties in standardized form,
+	  particularly UEFI secure boot.
+	  This options enables RSA signature verification with a public key
+	  directly specified in image_sign_info, where all the necessary
+	  key properties will be calculated on the fly in verification code
+	  in the SPL.
+
+config RSA_SOFTWARE_EXP
+	bool "Enable driver for RSA Modular Exponentiation in software"
+	depends on DM
+	help
+	  Enables driver for modular exponentiation in software. This is a RSA
+	  algorithm used in FIT image verification. It required RSA Key as
+	  input.
+	  See doc/uImage.FIT/signature.txt for more details.
+
+config RSA_FREESCALE_EXP
+	bool "Enable RSA Modular Exponentiation with FSL crypto accelerator"
+	depends on DM && FSL_CAAM && !ARCH_MX7 && !ARCH_MX7ULP && !ARCH_MX6 && !ARCH_MX5
+	help
+	Enables driver for RSA modular exponentiation using Freescale cryptographic
+	accelerator - CAAM.
+
+config RSA_ASPEED_EXP
+	bool "Enable RSA Modular Exponentiation with ASPEED crypto accelerator"
+	depends on DM && ASPEED_ACRY
+	help
+	Enables driver for RSA modular exponentiation using ASPEED cryptographic
+	accelerator - ACRY
+
+endif
 endmenu

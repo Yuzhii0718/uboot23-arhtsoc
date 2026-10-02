@@ -49,6 +49,10 @@ DECLARE_BINMAN_MAGIC_SYM;
 
 u32 *boot_params_ptr = NULL;
 
+#define SSK_BASE                (0x1f020000 - 0x400)
+#define SSK_SIZE                (32)
+
+
 #if CONFIG_IS_ENABLED(BINMAN_UBOOT_SYMBOLS)
 /* See spl.h for information about this */
 binman_sym_declare(ulong, u_boot_any, image_pos);
@@ -840,6 +844,10 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 			printf("Warning: Failed to finish bloblist (ret=%d)\n",
 			       ret);
 	}
+	#ifdef CONFIG_TPL_ENC
+	debug(" clear ssk --> debug[%s] at line=%d\n",__func__, __LINE__);
+	memset(SSK_BASE, 0,SSK_SIZE);
+	#endif
 
 	switch (spl_image.os) {
 	case IH_OS_U_BOOT:
@@ -899,7 +907,7 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
  */
 void preloader_console_init(void)
 {
-#ifdef CONFIG_SPL_SERIAL
+#if defined(CONFIG_SPL_SERIAL) || defined(CONFIG_TPL_SERIAL)
 	gd->baudrate = CONFIG_BAUDRATE;
 
 	serial_init();		/* serial communications setup */

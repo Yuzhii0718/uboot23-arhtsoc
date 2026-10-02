@@ -17,6 +17,10 @@
 #include <log.h>
 #include <spl.h>
 #include <asm/cache.h>
+#include <asm/system.h>
+
+#define TZRAM_BASE			(0x8a900000)
+#define BL33_BASE			(0x81e00000)
 
 /* Holds all the structures we need for bl31 parameter passing */
 struct bl2_to_bl31_params_mem {
@@ -89,7 +93,11 @@ struct bl31_params *bl2_plat_get_bl31_params_default(uintptr_t bl32_entry,
 		       ATF_EP_NON_SECURE);
 
 	/* BL33 expects to receive the primary CPU MPID (through x0) */
+	#ifndef CONFIG_ARM64 //7552 32bitenv doesn't support read_mpidr
+	//bl33_ep_info->args.arg0 = 0xffff & read_mpidr();
+	#else
 	bl33_ep_info->args.arg0 = 0xffff & read_mpidr();
+	#endif
 	bl33_ep_info->pc = bl33_entry;
 	bl33_ep_info->spsr = SPSR_64(MODE_EL2, MODE_SP_ELX,
 				     DISABLE_ALL_EXECPTIONS);
@@ -164,7 +172,11 @@ struct bl_params *bl2_plat_get_bl31_params_v2_default(uintptr_t bl32_entry,
 		       ATF_VERSION_2, ATF_EP_NON_SECURE);
 
 	/* BL33 expects to receive the primary CPU MPID (through x0) */
+	#ifndef CONFIG_ARM64
+	//bl_params_node->ep_info->args.arg0 = 0xffff & read_mpidr();
+	#else
 	bl_params_node->ep_info->args.arg0 = 0xffff & read_mpidr();
+	#endif
 	bl_params_node->ep_info->pc = bl33_entry;
 	bl_params_node->ep_info->spsr = SPSR_64(MODE_EL2, MODE_SP_ELX,
 						DISABLE_ALL_EXECPTIONS);
@@ -184,7 +196,11 @@ __weak struct bl_params *bl2_plat_get_bl31_params_v2(uintptr_t bl32_entry,
 
 static inline void raw_write_daif(unsigned int daif)
 {
+	#ifndef CONFIG_ARM64
+	//__asm__ __volatile__("msr cpsr_c, [%0]\n\t" : : "r" (daif) : "memory");
+	#else
 	__asm__ __volatile__("msr DAIF, %x0\n\t" : : "r" (daif) : "memory");
+	#endif
 }
 
 typedef void (*atf_entry_t)(struct bl31_params *params, void *plat_params);
@@ -205,6 +221,11 @@ static void bl31_entry(uintptr_t bl31_entry, uintptr_t bl32_entry,
 
 	raw_write_daif(SPSR_EXCEPTION_MASK);
 	dcache_disable();
+
+	#ifndef CONFIG_ARM64
+	//printf("spl_invoke_atf, bl31_entry jumparch64...\n");
+	jumparch64(BL33_BASE, 0, 0, TZRAM_BASE);
+	#endif
 
 	atf_entry(bl31_params, (void *)fdt_addr);
 }
@@ -292,6 +313,7 @@ void spl_invoke_atf(struct spl_image_info *spl_image)
 	 * We don't provide a BL3-2 entry yet, but this will be possible
 	 * using similar logic.
 	 */
+    //printf("bl31_entry, spl_image->entry_point = 0x%x\n",spl_image->entry_point);
 	bl31_entry(spl_image->entry_point, bl32_entry,
 		   bl33_entry, platform_param);
 }
