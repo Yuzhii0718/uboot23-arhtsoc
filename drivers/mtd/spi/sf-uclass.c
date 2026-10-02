@@ -64,9 +64,15 @@ struct spi_flash *spi_flash_probe(unsigned int busnum, unsigned int cs,
 	str = strdup(name);
 #endif
 
+#if defined(CONFIG_TPL_UBOOT_ARHT)
+	if (_spi_get_bus_and_cs(busnum, cs, max_hz, spi_mode,
+				"spi_nand", str, &bus, &slave))
+		return NULL;
+#else
 	if (_spi_get_bus_and_cs(busnum, cs, max_hz, spi_mode,
 				"jedec_spi_nor", str, &bus, &slave))
 		return NULL;
+#endif
 
 	return dev_get_uclass_priv(slave->dev);
 }
