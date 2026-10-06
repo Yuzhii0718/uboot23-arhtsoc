@@ -129,7 +129,9 @@ obj-$(CONFIG_TRACE) += trace.o
 obj-$(CONFIG_LIB_UUID) += uuid.o
 obj-$(CONFIG_LIB_RAND) += rand.o
 obj-y += panic.o
-
+ifdef CONFIG_OPEN_IMAGE
+obj-y += bootlib.o
+endif
 ifeq ($(CONFIG_$(SPL_TPL_)BUILD),y)
 # SPL U-Boot may use full-printf, tiny-printf or none at all
 ifdef CONFIG_$(SPL_TPL_)USE_TINY_PRINTF
