@@ -47,6 +47,7 @@ config TOOLS_FIT_RSASSA_PSS
 
 config TOOLS_FIT_SIGNATURE
 	def_bool y
+	select TOOLS_LIBCRYPTO
 	help
 	  Enable signature verification of FIT uImages in the tools builds
 
