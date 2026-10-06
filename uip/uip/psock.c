@@ -112,7 +112,7 @@ buf_bufdata(struct psock_buf *buf, u16_t len,
     tmp = memstr(ptr, content_boundary, *datalen);
     if(tmp) {
       tmp -= 2;
-      sprintf(content_boundary, "%x", tmp);
+      sprintf(content_boundary, "%p", (void *)tmp);
       *datalen = 0;
       return BUF_FULL;
     } else {
@@ -328,12 +328,12 @@ PT_THREAD(psock_readto(register struct psock *psock, unsigned char c))
 PT_THREAD(psock_readbuf(register struct psock *psock))
 {
   PT_BEGIN(&psock->psockpt);
-        char *s; 
-	u32 load_addr;
-        if ((s = getenv("loadaddr")) != NULL) {
+        char *s;
+	unsigned long load_addr = 0;
+        if ((s = env_get("loadaddr")) != NULL) {
                 load_addr = simple_strtoul(s, NULL, 16);
-        }   
-        printf("buf_setup load_addr = %x\n", load_addr);
+        }
+        printf("buf_setup load_addr = %lx\n", load_addr);
   /* FIXME: buf size should be according to CFG_KERN_SIZE */
   /*To support upto 7MB FW*/
   buf_setup(&psock->buf, (unsigned char *)load_addr, 0x1000000);

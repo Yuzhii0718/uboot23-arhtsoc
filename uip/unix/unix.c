@@ -44,17 +44,13 @@
 #include <common.h>
 #include <command.h>
 #include <net.h>
+#include <linux/delay.h>
 
 #define BUF ((struct uip_eth_hdr *)&uip_buf[0])
 
 #ifndef NULL
 #define NULL (void *)0
 #endif /* NULL */
-
-#ifndef CONFIG_OPEN_IMAGE
-extern VALID_BUFFER_STRUCT  rt2880_free_buf_list;
-extern BUFFER_ELEM *rt2880_free_buf_entry_dequeue(VALID_BUFFER_STRUCT *hdr);
-#endif
 
 extern int g_netUipLoop;
 int finish=0;
@@ -81,19 +77,10 @@ dev_init(void)
 static int
 dev_send(void)
 {
-  static BUFFER_ELEM *buf = NULL;
-
-#ifndef CONFIG_OPEN_IMAGE
-  if(buf == NULL)
-    buf = rt2880_free_buf_entry_dequeue(&rt2880_free_buf_list); 
-#endif
-  if(buf == NULL) {
-    printf("Packet Buffer is empty!\n");
-    return (-1);
-  }
-  net_tx_packet = buf->pbuf;
-  //NetTxPacket = KSEG1ADDR(NetTxPacket);
-
+  /*
+   * U-Boot owns the ethernet TX buffer itself; the RT2880 packet pool the
+   * original SDK dequeued from does not exist in this tree.
+   */
   memcpy((void *)net_tx_packet, uip_buf, uip_len);
 
   eth_send(net_tx_packet, uip_len);
@@ -213,7 +200,7 @@ uip_log(char *m)
 }
 /*---------------------------------------------------------------------------*/
 
-int ralink_uip_command(struct cmd_tbl *cmdtp, int flag, int argc, char *argv[])
+int ralink_uip_command(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
   if(!strncmp(argv[1], "main", 5)) {
     g_netUipLoop = 1;

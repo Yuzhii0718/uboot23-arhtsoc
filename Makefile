@@ -935,10 +935,16 @@ ifneq ($(strip $(TCSUPPORT_NEW_SPI)),) # if defined.
 UBOOTINCLUDE += -DTCSUPPORT_NEW_SPI
 endif
 
-ifneq ($(INCLUDE_UIP_FWUPGRADE),)
+# uIP web firmware recovery mode.  Enabled from Kconfig (CONFIG_UIP_FWUPGRADE,
+# i.e. from a defconfig or menuconfig) or, as before, with the
+# INCLUDE_UIP_FWUPGRADE make variable.
+UIP_FWUPGRADE := $(if $(CONFIG_UIP_FWUPGRADE),y,$(INCLUDE_UIP_FWUPGRADE))
+
+ifneq ($(UIP_FWUPGRADE),)
 UBOOTINCLUDE += -I$(srctree)/uip/unix/
 UBOOTINCLUDE += -I$(srctree)/uip/uip/
 UBOOTINCLUDE += -I$(srctree)/uip/apps/webserver
+KBUILD_CFLAGS += -DINCLUDE_UIP_FWUPGRADE
 endif
 
 # FIX ME
@@ -991,9 +997,7 @@ libs-$(CONFIG_UT_OVERLAY) += test/overlay/
 
 libs-y += $(if $(BOARDDIR),board/$(BOARDDIR)/)
 
-ifneq ($(INCLUDE_UIP_FWUPGRADE),)
-libs-y += uip/
-endif
+libs-$(UIP_FWUPGRADE) += uip/
 
 libs-y := $(sort $(libs-y))
 

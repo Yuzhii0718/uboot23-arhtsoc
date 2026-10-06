@@ -51,7 +51,12 @@
 #include <airoha/trx.h>
 
 #ifdef INCLUDE_UIP_FWUPGRADE
-#include "bootlib.h"
+/*
+ * Generic Airoha reset key, active low (see CR_GPIO_DATA in asm/tc3162.h).
+ * Holding it down during the autoboot delay enters the uIP web firmware
+ * recovery mode.
+ */
+#define UIP_RESET_KEY_GPIO	0
 #endif /* INCLUDE_UIP_FWUPGRADE */
 
 #ifdef TCSUPPORT_TCBOOT_1MB_SIZE
@@ -706,10 +711,12 @@ static int abortboot_single_key(int bootdelay)
 		/* delay 1000 ms */
 
 #ifdef INCLUDE_UIP_FWUPGRADE
-		if (0 != check_fw_gpio())
+		/* Reset key held? Enter the uIP web firmware recovery mode. */
+		if (!(regRead32(CR_GPIO_DATA) & (1 << UIP_RESET_KEY_GPIO)))
 		{
 			printf("FW GPIO is pressed. Enter firmware recovery mode.\n");
-			abort = up_file();
+			run_command("httpd", 0);
+			abort = 1;
 			bootdelay = 0;
 			break;
 		}

@@ -268,9 +268,8 @@ PT_THREAD(send_headers(struct httpd_state *s, const char *statushdr))
 static
 PT_THREAD(handle_output(struct httpd_state *s))
 {
-  char *ptr, *argv[2], addr[11];
+  char *ptr;
   static unsigned long length = 0;
-  unsigned long e_end;
   int get_addr_boundary(ulong *);
   //int do_bootm(cmd_tbl_t *, int, int, char *argv[]);
  
@@ -518,6 +517,19 @@ PT_THREAD(handle_input(struct httpd_state *s))
   }
 
 #else /*CONFIG_OPEN_IMAGE*/
+
+  /*
+   * The CONFIG_OPEN_IMAGE branch above does its own filename parsing; this
+   * plain uIP path needs it too.  Without it s->filename stays empty and
+   * httpd_fs_open() fails for every request, so all URLs end up on the 404
+   * page.
+   */
+  if(s->inputbuf[1] == ISO_space) {
+    strncpy(s->filename, http_index_html, sizeof(s->filename));
+  } else {
+    s->inputbuf[PSOCK_DATALEN(&s->sin) - 1] = 0;
+    strncpy(s->filename, s->inputbuf, sizeof(s->filename));
+  }
 
   /*  httpd_log_file(uip_conn->ripaddr, s->filename);*/
   

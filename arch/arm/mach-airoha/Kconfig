@@ -97,6 +97,18 @@ config UBOOT_ARHT
 	help
 	  Uboot Airoha Config
 
+config UIP_FWUPGRADE
+	bool "uIP web firmware recovery mode"
+	depends on CMD_NET
+	help
+	  Build the uIP based web recovery server into U-Boot.  It answers on
+	  the fixed address 192.168.1.1 and lets a browser upload a firmware
+	  image.
+
+	  The mode is entered either manually with the 'httpd' command or
+	  automatically when the board's reset key (GPIO 0, active low) is
+	  held down during the autoboot delay.
+
 config SYS_UBOOT_PARTITION_NAME
 	string "partition name of uboot"
 	default "bootloader"
