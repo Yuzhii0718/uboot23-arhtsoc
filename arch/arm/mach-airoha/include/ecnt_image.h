@@ -20,6 +20,21 @@ struct tclinux_imginfo {
 int get_tclinux_imginfo(struct tclinux_imginfo *info);
 int update_slave_offset_info(const void *image, ulong allinone_size);
 int update_gpt_info(const char *env_content);
+
+/*
+ * Offset of the environment blob inside the all-in-one upgrade image.
+ *
+ * The all-in-one image keeps the bootloader partition layout, so the
+ * environment blob sits at the same offset the partition reserves for it.
+ * Builds that store the environment at a fixed flash offset already have that
+ * value in CONFIG_ENV_OFFSET; builds that keep it in a UBI volume do not
+ * define CONFIG_ENV_OFFSET at all, so fall back to the image layout constant.
+ */
+#ifdef CONFIG_ENV_OFFSET
+#define ECNT_ALLINONE_ENV_OFFSET	CONFIG_ENV_OFFSET
+#else
+#define ECNT_ALLINONE_ENV_OFFSET	0x7c000
+#endif
 #ifdef CONFIG_OPEN_IMAGE
 #define TAG_LEN			(512)
 #define CLOUD_ID_BYTE_LEN	(16)

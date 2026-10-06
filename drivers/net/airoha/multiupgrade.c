@@ -30,6 +30,7 @@
 #include <airoha/arhtglobal.h>
 #include <mmc.h>
 #include <ecnt_flash.h>
+#include <ecnt_image.h>
 
 #if defined(TCSUPPORT_CT)
 #include <flash_layout/tc_partition.h>
@@ -549,7 +550,7 @@ void MultiWriteImage(char *ptr, unsigned long datalen, int isAllinone)
 				}
 
 				debug("[current gpt] master start = 0x%08x,  slave start = 0x%08x\n",master.start, slave.start);
-				if(0 == update_gpt_info(MULTI_BUF_BASE + CONFIG_ENV_OFFSET))
+				if(0 == update_gpt_info(MULTI_BUF_BASE + ECNT_ALLINONE_ENV_OFFSET))
 				{
 					/*use new gpt partitions*/
 					memset(&master, 0, sizeof(master));

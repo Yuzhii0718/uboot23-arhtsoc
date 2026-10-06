@@ -656,7 +656,7 @@ void ecnt_ImageUpgrade(int fw_type)
 				return;
 			}
 
-			update_gpt_info((const char *)(CONFIG_SYS_LOAD_ADDR + CONFIG_ENV_OFFSET - 0x200));
+			update_gpt_info((const char *)(CONFIG_SYS_LOAD_ADDR + ECNT_ALLINONE_ENV_OFFSET - 0x200));
 			if(mmc_partitions_parse(&master, "tclinux") != 0 ||
 			   mmc_partitions_parse(&slave, "tclinux_slave") != 0)
 				return;
