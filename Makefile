@@ -3,8 +3,8 @@
 VERSION = 2023
 PATCHLEVEL = 04
 SUBLEVEL =
-EXTRAVERSION =
-NAME =
+EXTRAVERSION = -ARHTSOC
+NAME = PHOENIX
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
