@@ -1815,6 +1815,92 @@ quiet_cmd_endian_swap = SWAP    $@
 u-boot-swap.bin: u-boot.bin FORCE
 	$(call if_changed,endian_swap)
 
+# Airoha-specific build targets
+ifeq ($(CONFIG_ARCH_AIROHA),y)
+
+# Airoha boot image build (modern split FIP / legacy 512 KiB image)
+ifeq ($(CONFIG_AIROHA_BUILD_MODERN),y)
+# Modern split FIP build (AN7581 / AN7583)
+PHONY += airoha_fip bl31-uboot.fip
+airoha_fip: u-boot.bin
+	@echo "  [AIROHA] Building modern FIP images (tools/build_airoha)..."
+	$(MAKE) -C $(srctree)/tools/build_airoha
+
+# Artifact names match OpenWrt (preloader.bin, bl31-uboot.fip); the old
+# 'bl2.fip'/'u-boot.fip' spellings are kept as aliases for compatibility.
+bl31-uboot.fip: airoha_fip
+bl2.fip: airoha_fip
+u-boot.fip: airoha_fip
+
+all: bl31-uboot.fip
+
+else ifeq ($(CONFIG_AIROHA_BUILD_LEGACY),y)
+# Legacy 512 KiB build.  With BL1 the artifact is bl1-bl2-bl31-uboot.bin;
+# without it the same FIP is written behind a 2 KiB zero prefix and the
+# artifact is bl2-bl31-uboot.bin (e.g. AN7563).
+PHONY += airoha_fip
+airoha_fip: u-boot.bin
+	@echo "  [AIROHA] Building legacy boot image (tools/build_airoha)..."
+	$(MAKE) -C $(srctree)/tools/build_airoha
+
+ifeq ($(CONFIG_AIROHA_LEGACY_BL1),y)
+PHONY += bl1-bl2-bl31-uboot.bin
+bl1-bl2-bl31-uboot.bin: airoha_fip
+all: bl1-bl2-bl31-uboot.bin
+else
+PHONY += bl2-bl31-uboot.bin
+bl2-bl31-uboot.bin: airoha_fip
+all: bl2-bl31-uboot.bin
+endif
+
+else  # !CONFIG_AIROHA_BUILD_MODERN && !CONFIG_AIROHA_BUILD_LEGACY
+
+# Non-FIP Airoha build: produce LZMA-compressed u-boot.bin.lzma
+# Prefer the LZMA SDK encoder (lzma -c) over xz so the output carries the
+# real uncompressed size in the header (same rule as tools/build_airoha's
+# LZMA_E), keeping it decompressible by the Airoha BL2.
+quiet_cmd_airoha_lzma = LZMA    $@
+      cmd_airoha_lzma = (lzma -c $< || xz --format=lzma --stdout $<) > $@
+
+u-boot.bin.lzma: u-boot.bin
+	$(call if_changed,airoha_lzma)
+
+all: u-boot.bin.lzma
+
+endif  # CONFIG_AIROHA_BUILD_MODERN
+
+# Standalone BL2 FIP (preloader.bin): the modern and the legacy layouts
+# produce the same artifact, so it is handled by a single switch
+# (CONFIG_AIROHA_PRELOADER) instead of one option per layout.  airoha_fip is
+# defined by both branches above, and CONFIG_AIROHA_PRELOADER depends on
+# AIROHA_BUILD_MODERN || AIROHA_BUILD_LEGACY, so one of them is always in effect.
+ifeq ($(CONFIG_AIROHA_PRELOADER),y)
+PHONY += preloader.bin
+preloader.bin: airoha_fip
+all: preloader.bin
+endif
+
+# EN7523 boots a flat image: the 2 KiB BL1 region followed by the BL2 FIP.
+ifeq ($(CONFIG_AIROHA_BUILD_MODERN),y)
+ifeq ($(CONFIG_AIROHA_PRELOADER_BL1),y)
+PHONY += bl1-preloader.bin
+bl1-preloader.bin: airoha_fip
+all: bl1-preloader.bin
+endif
+endif
+
+# Airoha chainloader image build (independent of the boot image layout)
+ifeq ($(CONFIG_AIROHA_BUILD_CHAINLOADER),y)
+PHONY += airoha_chainloader
+airoha_chainloader: u-boot.bin
+	@echo "  [AIROHA] Building chainloader images (tools/build_airoha)..."
+	$(MAKE) -C $(srctree)/tools/build_airoha
+
+all: airoha_chainloader
+endif
+
+endif  # CONFIG_ARCH_AIROHA
+
 ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(ARCH)/Makefile.postlink)
 
 # Generate linker list symbols references to force compiler to not optimize
@@ -2277,7 +2363,10 @@ CLEAN_FILES += include/bmp_logo.h include/bmp_logo_data.h \
 	       mkimage-out.spl.mkimage mkimage.spl.mkimage imx-boot.map \
 	       itb.fit.fit itb.fit.itb itb.map spl.map mkimage-out.rom.mkimage \
 	       mkimage.rom.mkimage rom.map simple-bin.map simple-bin-spi.map \
-	       idbloader-spi.img
+	       idbloader-spi.img \
+		   bl2.bin preloader.bin bl1-preloader.bin bl31-uboot.fip bl31.bin.lzma bootext.ram _legacy.fip key_area.bin \
+		   bl1-bl2-bl31-uboot.bin bl2-bl31-uboot.bin \
+		   certificates.bin *-chainloader.bin *-chainloader-prefix-shim.uImage *-chainloader-slot.bin
 
 # Directories & files removed with 'make mrproper'
 MRPROPER_DIRS  += include/config include/generated spl tpl \
