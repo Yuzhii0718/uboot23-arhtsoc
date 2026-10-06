@@ -1,0 +1,187 @@
+// SPDX-License-Identifier: GPL-2.0-only WITH Linux-syscall-note 
+/*
+ * Copyright (c) 2024 AIROHA Inc
+*/
+
+#ifndef __UAPI_ECNT_CHIP_ID_H_
+#define __UAPI_ECNT_CHIP_ID_H_
+
+/**
+* \file  ecnt_chip_id.h 
+* \brief This file is chip id header file that will be exported for other use.
+* \author ECONET
+* \date     2020-12-02
+* \version  A001 
+* \copyright EcoNet Inc                                                              
+*/
+
+	/* AN7583 */
+#define AN7583_HIR		(0x10)
+
+	/* AM7552 */
+#define AN7552_HIR		(0xf)
+
+	/* EN7581 */
+#define EN7581_HIR		(0xe)
+	
+	/* EN7523 */
+#define EN7523_HIR		(0xc)
+	
+	/* EN7528 */
+#define EN7528_HIR		(0xb)
+	
+	/* EN7580 */
+#define EN7580_HIR		(0xa)
+	
+	/* EN7516, EN7527 */
+#define EN751627_HIR	(0x9)
+	
+	/* EN7526c, EN7522 */
+#define EN7526C_HIR		(0x8)
+	
+	/* EN7512, EN7521 */
+#define EN751221_HIR	(0x7)
+	
+	/* MT7505 */
+#define MT7505_HIR		(0x6)
+	
+	/* MT7510, MT7520 */
+#define MT751020_HIR	(0x5)
+
+
+typedef struct
+{
+	unsigned int chidIdx;
+	unsigned int chipId;
+}chipInformation;
+
+typedef enum {
+	/*EN7523*/
+	EN7523_BASE = 0,
+	EN7529DU = EN7523_BASE,	/* 0 */
+	EN7529DT,
+	EN7529CU,
+	EN7562DU,
+	EN7562DT,
+	EN7562CU,		/* 5 */
+	EN7523GU,
+	EN7523DU,
+	EN7529GTH,		/* EN7529 Host */
+	EN7562GTH,		/* EN7562 Host */
+	EN7523SU,		/* 10 */
+	EN7529GTS,		/* EN7529 Slave */
+	EN7562GTS,		/* EN7562 Slave */
+	EN7529IT,
+	EN7529CT,
+	EN7562CT,		/* 15 */
+	EN7523DT,
+	EN7529DTM,
+	EN7562DTM,
+	EN7529ITM,
+	EN7529CTM,		/* 20 */
+	EN7562CTM,
+	EN7523DTM,	
+
+	/*EN7528*/
+	EN7528HU,
+	EN7528DU,
+	EN7561DU,
+	EN7526FH_EN7528DU,
+	EN7521G_EN7528DU,
+
+	/* EN7580 */
+	EN7580GT,
+	EN7580ST,
+	EN7580GAT,
+	EN7565,
+	EN7580,
+
+	/* EN7516 */
+	EN7516G,
+
+	/* EN7527 */
+	EN7527G,
+	EN7561G,
+	EN751627,
+
+	/* EN7512 */
+	EN7512,
+	EN7513,
+	EN7513G,
+
+	/* EN7521, EN7521FC */
+	EN7521FCUD,
+	EN7521F,
+	EN7521S,
+	EN7526D,
+	EN7526F,
+	EN7526G,
+	EN7526FT,
+	EN7526FP,
+	EN7526FT_C,
+	EN751221,
+
+	/* MT7520 */
+	MT7520S,
+	MT7520,
+	MT7520G,
+	MT7525,
+	MT7525G,
+
+	/* AN7581 */
+	AN7581_BASE,
+	AN7581GT = AN7581_BASE,
+	AN7566GT,
+	AN7581PT,
+	AN7581ST,
+	AN7551PT,
+	AN7581CT,
+	AN7581DT,
+	AN7581FG,
+	AN7581FP,
+	AN7581FD,
+	AN7551GT,
+	AN7566PT,
+	AN7581IT,
+	AN7581SIT,
+
+	/* AN7552 */
+	AN7552_BASE,
+	AN7552CT = AN7552_BASE,
+	AN7552ST,
+	AN7552FT,
+	AN7563CT,
+	AN7563PT,
+	
+	/* AN7583 */
+	AN7583_BASE,
+	AN7583GT = AN7583_BASE,
+	AN7583GIT,
+	AN7583CT,
+	AN7583DT,
+	RESERVED_PKGID_4,
+	AN7583ST,
+	AN9510GT,
+	AN7550CT,
+	AN7553GT,
+	AN7553CT,
+	AN7567GT,
+	AN7567CT,
+	AN7583ET,
+	AN7583EIT,
+	RESERVED_PKGID_14,
+	RESERVED_PKGID_15,
+	AN7583FG,			/*16 0x1_0000*/
+	RESERVED_PKGID_17,
+	AN7583FP,		
+	AN7583FD,
+	RESERVED_PKGID_20,
+	AN7583FS,
+	AN7583FF,
+
+	END_PACKAGE_ID = 0xFFFFFFFF,
+} chipId_t ;
+
+#endif/* __ECNT_CHIP_ID_H_ */
+
+
