@@ -1,4 +1,9 @@
-obj-y += bmt.o
+# BMT implements the I/O mapping helpers used by the guarded BMT paths in
+# spi_nand_flash.c; it references en7512_nand_* which only exist when the
+# legacy BMT is enabled (see LEGACY_NAND_BMT in include/spi/spi_nand_flash.h).
+# Keyed off the same Kconfig switch as the new SPI-NAND stack so the two can
+# never disagree.
+obj-$(CONFIG_AIROHA_BMT) += bmt.o
 obj-y += flashhal.o
 obj-y += newspiflash.o
 obj-y += spi_nand_flash_table.o

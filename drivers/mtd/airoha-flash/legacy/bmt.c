@@ -86,7 +86,7 @@ static u32 system_block_count;      // system block number
 static int bmt_block_count;         // bmt block number
 
 int nand_logic_size;                // logic size
-int nand_flash_avalable_size;		// nand flash avaliable size
+/* nand_flash_avalable_size is owned by spi_nand_flash.c (always built). */
 static int page_per_block;          // page per count
 static int oob_bad_index_offset = OOB_INDEX_OFFSET;       // bad index offset in oob
 

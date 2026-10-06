@@ -128,7 +128,7 @@
 #endif
 #endif
 
-#if	defined(TCSUPPORT_NAND_BMT)
+#if	defined(LEGACY_NAND_BMT)
 #if (!defined(LZMA_IMG) && !defined(BOOTROM_EXT)) || defined(TCSUPPORT_BB_256KB)
 #if defined(TCSUPPORT_OPENWRT)
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,30)
@@ -145,6 +145,13 @@
 #if defined(CONFIG_ECNT_UBOOT) && defined(TCSUPPORT_UBOOT_2023) && defined(INCLUDE_BOOT_AGINETCONFIG)
 #include "os_abstr_CPE.h"
 #endif /* CONFIG_ECNT_UBOOT && && TCSUPPORT_UBOOT_2023 && INCLUDE_BOOT_AGINETCONFIG */
+
+/*
+ * Usable size of the SPI-NAND chip: the whole chip, minus the blocks reserved
+ * for BMT when BMT is enabled.  Defined here rather than in bmt.c so that it
+ * stays available when the BMT object is not built (CONFIG_AIROHA_BMT=n).
+ */
+int nand_flash_avalable_size;
 
 /* NAMING CONSTANT DECLARATIONS ------------------------------------------------------ */
 
@@ -207,7 +214,7 @@
 #define PAGE_SIZE_MAGIC_FLASH_ADDR			(0XFFB0)
 #define PAGE_SIZE_MAGIC						(0x50414745)
 
-#if	defined(TCSUPPORT_NAND_BMT)
+#if	defined(LEGACY_NAND_BMT)
 #if (!defined(LZMA_IMG)) || defined(TCSUPPORT_BB_256KB)
 #define ERASE_STATISTICS
 #endif
@@ -478,7 +485,7 @@ u8	_current_cache_page_oob_mapping[_SPI_NAND_OOB_SIZE];
 /* TYPE DECLARATIONS ----------------------------------------------------------------- */
 
 /* STATIC VARIABLE DECLARATIONS ------------------------------------------------------ */
-#if	defined(TCSUPPORT_NAND_BMT) && (!defined(LZMA_IMG) || defined(TCSUPPORT_BB_256KB))
+#if	defined(LEGACY_NAND_BMT) && (!defined(LZMA_IMG) || defined(TCSUPPORT_BB_256KB))
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,30)
 extern int nand_logic_size;
@@ -488,9 +495,6 @@ extern int nand_logic_size;
 static int bmt_pool_size = 0;
 static bmt_struct *g_bmt = NULL;
 static init_bbt_struct *g_bbt = NULL;
-#if !defined(IMAGE_BL2)
-extern int nand_flash_avalable_size;
-#endif
 u32 maximum_bmt_block_count=0;
 
 #define BMT_BAD_BLOCK_INDEX_OFFSET (1)
@@ -1599,7 +1603,7 @@ static SPI_NAND_FLASH_RTN_T ecc_fail_check( u32 page_number )
 			rtn_status = SPI_NAND_FLASH_RTN_DETECTED_BAD_BLOCK;
 			_SPI_NAND_PRINTF("[spinand_ecc_fail_check] : ECC cannot recover detected !, page=0x%x\n", page_number);
 		}
-#if defined(TCSUPPORT_NAND_BMT) && !defined(IMAGE_BL2) && ((!defined(LZMA_IMG) && !defined(BOOTROM_EXT)) || defined(TCSUPPORT_BB_256KB))
+#if defined(LEGACY_NAND_BMT) && !defined(IMAGE_BL2) && ((!defined(LZMA_IMG) && !defined(BOOTROM_EXT)) || defined(TCSUPPORT_BB_256KB))
 		else if (ptr_dev_info_t->feature & SPI_NAND_FLASH_READ_ECC_ERROR_BIT_CHECK)
 		{
 			u8 i;
@@ -1983,7 +1987,7 @@ static SPI_NAND_FLASH_RTN_T spi_nand_read_page (u32 page_number, SPI_NAND_FLASH_
 		_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_2, "spi_nand_read_page: _current_cache_page_oob_mapping:\n");
 		_SPI_NAND_DEBUG_PRINTF_ARRAY(SPI_NAND_FLASH_DEBUG_LEVEL_2, &_current_cache_page_oob_mapping[0], (ptr_dev_info_t->oob_free_layout)->oobsize);
 
-#if defined(TCSUPPORT_NAND_BMT) && !defined(IMAGE_BL2) && ((!defined(LZMA_IMG) && !defined(BOOTROM_EXT)) || defined(TCSUPPORT_BB_256KB))
+#if defined(LEGACY_NAND_BMT) && !defined(IMAGE_BL2) && ((!defined(LZMA_IMG) && !defined(BOOTROM_EXT)) || defined(TCSUPPORT_BB_256KB))
 		if (rtn_status == SPI_NAND_FLASH_RTN_ECC_EXCEEDED_THRESHOLD)
 		{
 			current_block=page_number/PAGE_CNT_PER_BLOCK;
@@ -2107,7 +2111,7 @@ static SPI_NAND_FLASH_RTN_T spi_nand_read_internal(
 #else
 	u32								read_addr, physical_read_addr;
 #endif
-	u32			 					remain_len, logical_block, physical_block;
+	u32			 					remain_len;
 	struct SPI_NAND_FLASH_INFO_T	*ptr_dev_info_t;
 	SPI_NAND_FLASH_RTN_T			rtn_status = SPI_NAND_FLASH_RTN_NO_ERROR;
 	SPI_ECC_RTN_T					ecc_status = SPI_ECC_RTN_NO_ERROR;
@@ -2117,7 +2121,8 @@ static SPI_NAND_FLASH_RTN_T spi_nand_read_internal(
 	SPI_NFI_CONF_T					spi_nfi_conf_t;
 	SPI_ECC_DECODE_CONF_T			spi_ecc_decode_conf_t;
 	
-#if	defined(TCSUPPORT_NAND_BMT) && ((!defined(LZMA_IMG) && !defined(BOOTROM_EXT)) || defined(TCSUPPORT_BB_256KB))
+#if	defined(LEGACY_NAND_BMT) && ((!defined(LZMA_IMG) && !defined(BOOTROM_EXT)) || defined(TCSUPPORT_BB_256KB))
+	u32			 					logical_block, physical_block;
     unsigned short phy_block_bbt;
 	unsigned long  addr_offset_in_block;
 	/* for exceed 64bits address */
@@ -2158,7 +2163,7 @@ static SPI_NAND_FLASH_RTN_T spi_nand_read_internal(
 	while(remain_len > 0) {
 		physical_read_addr = read_addr;
 
-#if	defined(TCSUPPORT_NAND_BMT) && ((!defined(LZMA_IMG) && !defined(BOOTROM_EXT)) || defined(TCSUPPORT_BB_256KB))
+#if	defined(LEGACY_NAND_BMT) && ((!defined(LZMA_IMG) && !defined(BOOTROM_EXT)) || defined(TCSUPPORT_BB_256KB))
 		if(otp_status == NAND_FLASH_OTP_DISABLE) {
             #if defined(TCSUPPORT_CPU_ARMV8) && !defined(TCSUPPORT_CPU_ARMV8_64)
             logical_block = div_u64_rem(read_addr, ptr_dev_info_t->erase_size, &addr_offset_in_block);
@@ -3549,7 +3554,7 @@ static SPI_NAND_FLASH_RTN_T spi_nand_write_internal( u32 dst_addr,
 	unsigned long					spinand_spinlock_flags;
 #endif
 		
-#if	defined(TCSUPPORT_NAND_BMT) && !defined(LZMA_IMG) && !defined(BOOTROM_EXT)
+#if	defined(LEGACY_NAND_BMT) && !defined(LZMA_IMG) && !defined(BOOTROM_EXT)
     unsigned short	phy_block_bbt = 0;
 	unsigned long	addr_offset_in_block = 0;
 	u32				logical_block = 0, physical_block = 0;
@@ -3577,7 +3582,7 @@ static SPI_NAND_FLASH_RTN_T spi_nand_write_internal( u32 dst_addr,
 	{
 		physical_dst_addr = write_addr;
 		
-#if	defined(TCSUPPORT_NAND_BMT) && !defined(LZMA_IMG) && !defined(BOOTROM_EXT)
+#if	defined(LEGACY_NAND_BMT) && !defined(LZMA_IMG) && !defined(BOOTROM_EXT)
 		memset(oob_buf, 0xff, _SPI_NAND_OOB_SIZE);
 
 		if(otp_status == NAND_FLASH_OTP_DISABLE) {
@@ -3603,7 +3608,7 @@ static SPI_NAND_FLASH_RTN_T spi_nand_write_internal( u32 dst_addr,
 			data_len = remain_len;
 		}
 
-#if	defined(TCSUPPORT_NAND_BMT) && !defined(LZMA_IMG) && !defined(BOOTROM_EXT)
+#if	defined(LEGACY_NAND_BMT) && !defined(LZMA_IMG) && !defined(BOOTROM_EXT)
 		if(otp_status == NAND_FLASH_OTP_DISABLE) {
 			if(block_is_in_bmt_region(physical_block)) {
 				if(ptr_dev_info_t->feature & SPI_NAND_FLASH_OOB_RESERVE_FOR_BMT) {
@@ -3889,7 +3894,7 @@ static SPI_NAND_FLASH_RTN_T spi_nand_erase_internal( u32 addr,
 	unsigned long			spinand_spinlock_flags;
 #endif
 				
-#if	defined(TCSUPPORT_NAND_BMT) && !defined(LZMA_IMG) && !defined(BOOTROM_EXT)
+#if	defined(LEGACY_NAND_BMT) && !defined(LZMA_IMG) && !defined(BOOTROM_EXT)
     unsigned short	phy_block_bbt;
 	u32				logical_block, physical_block;
 #endif	
@@ -3915,7 +3920,7 @@ static SPI_NAND_FLASH_RTN_T spi_nand_erase_internal( u32 addr,
 		while( erase_len < len ) {
 			/* 2.1 Caculate Block index */
 			block_index = (addr/(_current_flash_info_t.erase_size));
-#if	defined(TCSUPPORT_NAND_BMT) && !defined(LZMA_IMG) && !defined(BOOTROM_EXT)
+#if	defined(LEGACY_NAND_BMT) && !defined(LZMA_IMG) && !defined(BOOTROM_EXT)
 			logical_block = block_index;
 			physical_block = get_mapping_block_index(logical_block, &phy_block_bbt);		
 			if( physical_block != logical_block) {			
@@ -3937,7 +3942,7 @@ static SPI_NAND_FLASH_RTN_T spi_nand_erase_internal( u32 addr,
 
 			/* 2.6 Check Erase Fail Bit */
 			if(rtn_status != SPI_NAND_FLASH_RTN_NO_ERROR) {
-#if	defined(TCSUPPORT_NAND_BMT) && !defined(LZMA_IMG) && !defined(BOOTROM_EXT)
+#if	defined(LEGACY_NAND_BMT) && !defined(LZMA_IMG) && !defined(BOOTROM_EXT)
 				if (update_bmt((block_index * BLOCK_SIZE),UPDATE_ERASE_FAIL, NULL, NULL)) {
 					_SPI_NAND_PRINTF("Erase fail at block: %d, update BMT success\n", addr/(_current_flash_info_t.erase_size));
 					rtn_status = SPI_NAND_FLASH_RTN_NO_ERROR;
@@ -4009,7 +4014,7 @@ int nandflash_erase(unsigned long offset, unsigned long len)
 }
 #endif
 
-#if	defined(TCSUPPORT_NAND_BMT)
+#if	defined(LEGACY_NAND_BMT)
 #if (!defined(LZMA_IMG)) || defined(TCSUPPORT_BB_256KB)
 int en7512_nand_exec_read_page(u32 page, u8* date, u8* oob)
 {	
@@ -4267,11 +4272,11 @@ int calc_bmt_pool_size(struct ra_nand_chip *ra_chip)
     return (total_block - last_block);   
 }
 #endif
-#endif //defined(TCSUPPORT_NAND_BMT)
+#endif //defined(LEGACY_NAND_BMT)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,30)
 #if !defined(BOOTROM_EXT)
-#if defined(TCSUPPORT_NAND_BMT) && !defined(LZMA_IMG)
+#if defined(LEGACY_NAND_BMT) && !defined(LZMA_IMG)
 bmt_struct *get_g_bmt(void)
 {
 	return g_bmt;
@@ -4296,7 +4301,7 @@ void reset_dma_write_addr(void)
 {
 	set_dma_write_addr(tmp_dma_write_page + (CACHE_LINE_SIZE - (((uintptr_t)tmp_dma_write_page) % CACHE_LINE_SIZE)));
 }
-#endif //#if defined(TCSUPPORT_NAND_BMT) && !defined(LZMA_IMG)
+#endif //#if defined(LEGACY_NAND_BMT) && !defined(LZMA_IMG)
 
 SPI_NAND_FLASH_RTN_T get_spi_nand_protocol_read_id (struct SPI_NAND_FLASH_INFO_T *ptr_rtn_flash_id)
 {
@@ -4396,7 +4401,7 @@ static void spi_nand_manufacute_init(struct SPI_NAND_FLASH_INFO_T *ptr_device_t)
 		}
 	}
 
-#if defined(TCSUPPORT_NAND_BMT) && !defined(IMAGE_BL2) && ((!defined(LZMA_IMG) && !defined(BOOTROM_EXT)) || defined(TCSUPPORT_BB_256KB))
+#if defined(LEGACY_NAND_BMT) && !defined(IMAGE_BL2) && ((!defined(LZMA_IMG) && !defined(BOOTROM_EXT)) || defined(TCSUPPORT_BB_256KB))
 	if (ptr_device_t->feature & SPI_NAND_FLASH_READ_ECC_ERROR_BIT_CHECK)
 	{
 		if (ptr_device_t->read_ecc_ceck.type == _SPI_NAND_CHECK_ECC_THROSHOLD_BY_FLASH)
@@ -4651,7 +4656,7 @@ int spinand_ctrlEcc_calibration(SPI_NFI_CONF_T	*spi_nfi_conf_t,
 }
 #endif
 
-#if defined(TCSUPPORT_NAND_BMT)
+#if defined(LEGACY_NAND_BMT)
 #if (!defined(LZMA_IMG) && !defined(BOOTROM_EXT)) || defined(TCSUPPORT_BB_256KB)
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,30)
 int init_bmt_bbt(struct mtd_info *mtd)
@@ -4861,6 +4866,7 @@ static int spi_buf_init(void)
 	return 0;
 }
 
+#if defined(LEGACY_NAND_BMT)
 int spi_nand_bad_block_rate(void)
 {
 	u32 idx, bad_block_cnt, rate;
@@ -4881,6 +4887,7 @@ int spi_nand_bad_block_rate(void)
 
 	return rate;
 }
+#endif /* LEGACY_NAND_BMT */
 
 /*------------------------------------------------------------------------------------
  * FUNCTION: SPI_NAND_FLASH_RTN_T SPI_NAND_Flash_Init( long  rom_base )
@@ -5074,13 +5081,24 @@ reservearea_size = 0x40000;
 reservearea_size = _current_flash_info_t.erase_size;
 #endif*/
 
-#if	defined(TCSUPPORT_NAND_BMT)
+#if	defined(LEGACY_NAND_BMT)
 #if (!defined(LZMA_IMG) && !defined(BOOTROM_EXT)) || defined(TCSUPPORT_BB_256KB)
 		if(init_bmt_bbt(&ra) == -1) {
 			return -1;
 		}
 #endif
-#endif //#if defined(TCSUPPORT_NAND_BMT) && !defined(LZMA_IMG) && !defined(BOOTROM_EXT)
+#else
+#if (!defined(LZMA_IMG) && !defined(BOOTROM_EXT)) || defined(TCSUPPORT_BB_256KB)
+#if !defined(IMAGE_BL2)
+		/*
+		 * No BMT: nothing is reserved, the whole chip is usable.  This is
+		 * the geometry the UBI / all-in-one images are created for; UBI
+		 * takes care of bad PEBs itself.
+		 */
+		nand_flash_avalable_size = _current_flash_info_t.device_size;
+#endif
+#endif
+#endif //#if defined(LEGACY_NAND_BMT) && !defined(LZMA_IMG) && !defined(BOOTROM_EXT)
 #endif //#if !(defined(BOOTROM_EXT) && (defined(TCSUPPORT_CPU_EN7516)||defined(TCSUPPORT_CPU_EN7527)))
 #endif //
 	}
@@ -5295,7 +5313,7 @@ static SPI_NAND_FLASH_RTN_T spi_nand_write_page_internal(u32 page_number,
 	SPI_NAND_FLASH_RTN_T			rtn_status = SPI_NAND_FLASH_RTN_NO_ERROR;
 	unsigned long					spinand_spinlock_flags;
 		
-#if	defined(TCSUPPORT_NAND_BMT)
+#if	defined(LEGACY_NAND_BMT)
     unsigned short phy_block_bbt;
 	u32			   logical_block, physical_block;
 	u32			   page_offset_in_block;
@@ -5312,7 +5330,7 @@ static SPI_NAND_FLASH_RTN_T spi_nand_write_page_internal(u32 page_number,
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_2, "dump ptr_oob oob_len:%d\n", oob_len);	
 	_SPI_NAND_DEBUG_PRINTF_ARRAY(SPI_NAND_FLASH_DEBUG_LEVEL_2, ptr_oob, oob_len);
 	
-#if	defined(TCSUPPORT_NAND_BMT)
+#if	defined(LEGACY_NAND_BMT)
 		if(otp_status == NAND_FLASH_OTP_DISABLE) {
 			page_offset_in_block = ((page_number * (ptr_dev_info_t->page_size))%(ptr_dev_info_t->erase_size))/(ptr_dev_info_t->page_size);
 			logical_block = ((page_number * (ptr_dev_info_t->page_size))/(ptr_dev_info_t->erase_size)) ;
@@ -5327,7 +5345,7 @@ static SPI_NAND_FLASH_RTN_T spi_nand_write_page_internal(u32 page_number,
 		_SPI_NAND_DEBUG_PRINTF_ARRAY(SPI_NAND_FLASH_DEBUG_LEVEL_2, ptr_oob, oob_len);	
 		_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spi_nand_write_page_internal]: page_number = 0x%x\n", page_number);
 		
-#if	defined(TCSUPPORT_NAND_BMT)
+#if	defined(LEGACY_NAND_BMT)
 		if(otp_status == NAND_FLASH_OTP_DISABLE) {
 			if(block_is_in_bmt_region(physical_block)) {						
 				if(ptr_dev_info_t->feature & SPI_NAND_FLASH_OOB_RESERVE_FOR_BMT) {
@@ -5377,7 +5395,7 @@ static SPI_NAND_FLASH_RTN_T spi_nand_read_page_internal(u32 page_number,
 	SPI_NAND_FLASH_RTN_T			rtn_status = SPI_NAND_FLASH_RTN_NO_ERROR;
 	unsigned long					spinand_spinlock_flags;
 
-#if	defined(TCSUPPORT_NAND_BMT)
+#if	defined(LEGACY_NAND_BMT)
 	unsigned short phy_block_bbt;
 	u32 		   page_offset_in_block;
 #endif
@@ -5386,7 +5404,7 @@ static SPI_NAND_FLASH_RTN_T spi_nand_read_page_internal(u32 page_number,
 
 	_SPI_NAND_SEMAPHORE_LOCK(); 	
 	
-#if	defined(TCSUPPORT_NAND_BMT)
+#if	defined(LEGACY_NAND_BMT)
 	if(otp_status == NAND_FLASH_OTP_DISABLE) {
 		page_offset_in_block = (((page_number * (ptr_dev_info_t->page_size))%(ptr_dev_info_t->erase_size))/ (ptr_dev_info_t->page_size));
 		logical_block = ((page_number * (ptr_dev_info_t->page_size))/(ptr_dev_info_t->erase_size)) ;
@@ -6194,7 +6212,7 @@ chip->ecc.engine_type	= NAND_ECC_ENGINE_TYPE_SOFT;
 
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "%s:%d mtd->oobavail:%d\n", __func__, __LINE__, mtd->oobavail);
 
-#if	defined(TCSUPPORT_NAND_BMT)
+#if	defined(LEGACY_NAND_BMT)
 	if(init_bmt_bbt(mtd) == -1) {
 		ret = -1;
         goto setup_fail_exit;
@@ -6811,7 +6829,7 @@ EXPORT_SYMBOL(spinand_lock);
 EXPORT_SYMBOL(spinand_unlock);
 
 #endif
-#if defined(CONFIG_ECNT_UBOOT)
+#if defined(CONFIG_ECNT_UBOOT) && defined(LEGACY_NAND_BMT)
 extern bool recover_bmt(u32 bad_offset);
 extern bool is_beyond_total_block_count(u32 offset);
 

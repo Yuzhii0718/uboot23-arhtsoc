@@ -63,6 +63,27 @@
 
 #include "spi/nand_flash_otp.h"
 
+/*
+ * Legacy SPI-NAND bad block management (BMT).
+ *
+ * The board configuration asks for BMT (TCSUPPORT_NAND_BMT), but layouts that
+ * keep kernel/rootfs in a UBI volume must not reserve flash for it: UBI
+ * maintains its own PEB level bad block information and the UBI/all-in-one
+ * images are generated for the full chip size.  CONFIG_AIROHA_BMT - the same
+ * switch the new SPI-NAND stack uses - therefore vetoes the legacy BMT when it
+ * is disabled, and the driver falls back to plain page/block accesses.
+ */
+#ifdef CONFIG_IS_ENABLED
+#if defined(TCSUPPORT_NAND_BMT) && CONFIG_IS_ENABLED(AIROHA_BMT)
+#define LEGACY_NAND_BMT
+#endif
+#else
+/* Not a U-Boot build (no Kconfig): keep whatever the board asked for. */
+#if defined(TCSUPPORT_NAND_BMT)
+#define LEGACY_NAND_BMT
+#endif
+#endif
+
 /* MACRO DECLARATIONS ---------------------------------------------------------------- */
 #define SPI_NAND_FLASH_OOB_FREE_ENTRY_MAX				(32)
 #define SPI_NAND_FLASH_THRESHOLD_VALUE_MAX				(3)
@@ -731,7 +752,7 @@ SPI_NAND_FLASH_RTN_T spi_nand_protocol_program_execute ( u32 addr );
 
 void spi_nand_protocol_set_otp(NAND_FLASH_OTP_ENABLE_T enable);
 
-#if	defined(TCSUPPORT_NAND_BMT)
+#if	defined(LEGACY_NAND_BMT)
 #if (!defined(LZMA_IMG) && !defined(BOOTROM_EXT)) || defined(TCSUPPORT_BB_256KB)
 int en7512_nand_exec_read_page(u32 page, u8* date, u8* oob);
 int en7512_nand_check_block_bad(u32 offset, u32 bmt_block);
