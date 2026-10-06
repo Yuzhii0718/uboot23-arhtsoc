@@ -304,11 +304,22 @@ as new types are added without the need for intermediate software.
 */
 #define SUB_TAG_MAX_TYPE	(30)
 
+/* these are also defined by arch/arm/mach-airoha/include/ecnt_image.h */
+#ifndef TAG_LEN
 #define TAG_LEN         512
+#endif
+#ifndef CLOUD_ID_BYTE_LEN
 #define CLOUD_ID_BYTE_LEN	16
+#endif
+#ifndef TOKEN_LEN
 #define TOKEN_LEN	20
+#endif
+#ifndef MAGIC_NUM_LEN
 #define MAGIC_NUM_LEN	20
+#endif
+#ifndef SIG_LEN
 #define SIG_LEN		128
+#endif
 
 #ifdef INCLUDE_DUAL_IMAGE
 #define OPEN_IMAGE_SLAVE 1
@@ -381,9 +392,6 @@ typedef struct
 /**************************************************************************************************/
 /*                                           FUNCTIONS                                            */
 /**************************************************************************************************/
-void boot_set_all_led_on(void);
-
-void boot_set_all_except_power_led_off(void);
 
 #if defined(INCLUDE_WIFI_MTK_MT7992) || defined(INCLUDE_WIFI_MTK_MT7993) || defined(INCLUDE_WIFI_MTK_MT7996)
 void boot_reset(void);

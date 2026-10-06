@@ -75,6 +75,10 @@ const ImageConf spi_conf =
 
 unsigned int image_read_mode = 0;
 const ImageConf *current_conf;
+
+/* implemented in ecnt_bootargs.c */
+int bootargs_init(unsigned int bootflag);
+
 int init_image_parameter(void)
 {
 	if(is_emmc()) 
@@ -127,7 +131,7 @@ static int flash_op(unsigned long mmcaddr, unsigned long mtdaddr, unsigned long 
 		ei.addr = mtdaddr;
 		ei.len = size;
 		m = mtd_erase(mtd, &ei);
-		printf("mtd erase: partition=%s, addr=0x%x, len=0x%x %s\n", mtd_dev, mtdaddr, (unsigned int)size, ((m)? "ERROR": "OK"));
+		printf("mtd erase: partition=%s, addr=0x%x, len=0x%x %s\n", mtd_dev, (unsigned int)mtdaddr, (unsigned int)size, ((m)? "ERROR": "OK"));
 		if(m)
 			return -1;
 
@@ -729,19 +733,19 @@ void ecnt_ImageUpgrade(int fw_type)
 			
 			if (img_size != (pTpTag->totalImageLen + sizeof(LINUX_FILE_TAG)))
 			{
-				printf("wrong image(file len %x, tag file len %x)\n", img_size, pTpTag->totalImageLen + sizeof(LINUX_FILE_TAG));
+				printf("wrong image(file len %x, tag file len %x)\n", (unsigned int)img_size, (unsigned int)(pTpTag->totalImageLen + sizeof(LINUX_FILE_TAG)));
 				return;
 			}
 
 			/* write kernel to flash */
-			if (flash_op(0, KERNEL_OFFSET, pTpTag->kernelLen, mtd_name_kernel, pBufAddr + pTpTag->kernelAddress + sizeof(LINUX_FILE_TAG)))
+			if (flash_op(0, KERNEL_OFFSET, pTpTag->kernelLen, mtd_name_kernel, (unsigned long)(pBufAddr + pTpTag->kernelAddress + sizeof(LINUX_FILE_TAG))))
 			{
 				printf("write kernel failed\n");
 				return;
 			}
 
 			/* write rootfs to flash */
-			if (flash_op(0, ROOTFS_OFFSET, pTpTag->rootfsLen, mtd_name_rootfs, pBufAddr + pTpTag->rootfsAddress + sizeof(LINUX_FILE_TAG)))
+			if (flash_op(0, ROOTFS_OFFSET, pTpTag->rootfsLen, mtd_name_rootfs, (unsigned long)(pBufAddr + pTpTag->rootfsAddress + sizeof(LINUX_FILE_TAG))))
 			{
 				printf("write rootfs failed\n");
 				return;
@@ -754,6 +758,44 @@ void ecnt_ImageUpgrade(int fw_type)
 	}
 	#endif/*CONFIG_OPEN_IMAGE*/
 }
+
+#ifdef CONFIG_OPEN_IMAGE
+/*
+ * The uIP web upgrade flow (uip/apps/webserver/httpd.c, handle_update) calls
+ * upgrade_firmware() with the uploaded image.  In the TP-Link SDK that
+ * function lives in the Aginet component (tplink/AginetConfigV3), which is not
+ * part of this GPL tree.  Do what the local image upgrade does for the
+ * tclinux image instead: write it into the tclinux partition (on UBI boards
+ * that partition holds the UBI volumes, so the image goes in verbatim).
+ */
+int upgrade_firmware(uint8_t *pFirmwareAddr, uint32_t firmwareLength)
+{
+	if ((NULL == pFirmwareAddr) || (0 == firmwareLength))
+	{
+		printf("upgrade_firmware: nothing to write\n");
+		return -1;
+	}
+
+	printf("upgrade_firmware: writing %u bytes from 0x%08lx to %s\n",
+			(unsigned int)firmwareLength, (unsigned long)pFirmwareAddr,
+			CONFIG_SYS_TCLINUX_PARTITION_NAME);
+
+	flush_cache((unsigned long)pFirmwareAddr, firmwareLength);
+
+	init_image_parameter();
+
+	if(flash_op(TCLINUX_OFFSET + current_conf->gpt_size, 0, firmwareLength,
+			CONFIG_SYS_TCLINUX_PARTITION_NAME, (unsigned long)pFirmwareAddr))
+	{
+		printf("upgrade_firmware: Flash Op Failed\n");
+		return -1;
+	}
+
+	printf("upgrade_firmware: upgrade finished !\n");
+
+	return 0;
+}
+#endif /* CONFIG_OPEN_IMAGE */
 
 __attribute__((unused))static int get_fdt_node_offset_len(unsigned char *buf, int images_noffset, const char *node, void **offset, u32 *len)
 {
@@ -1373,10 +1415,10 @@ static int mtd_load_image(struct cmd_tbl *cmdtp, int flag, int argc, char *const
 		struct mtd_info *mtd_misc = NULL;
 
 		char current_misc_partition [16] = {0};
-		unsigned long buf = CONFIG_SYS_LOAD_ADDR;	
+		unsigned char *buf = (unsigned char *)CONFIG_SYS_LOAD_ADDR;
 
 		int ret = 0;
-		int ret_len = 0;
+		size_t ret_len = 0;
 		struct mtd_info *mtd_kernel = NULL;
 		IMAGE_TAG *Tag =NULL ;
 
@@ -1418,7 +1460,7 @@ static int mtd_load_image(struct cmd_tbl *cmdtp, int flag, int argc, char *const
 		ret = setup_mtd_device(&mtd_kernel, current_boot_partition);
 		if (ret) {
 			printf("ERROR: Invalid TCLinux partition!\n");
-			return;
+			return -1;
 		}
 		
 		//read TAG_LEN
@@ -1430,7 +1472,7 @@ static int mtd_load_image(struct cmd_tbl *cmdtp, int flag, int argc, char *const
 		ret = setup_mtd_device(&mtd_kernel, current_boot_partition);
 		if (ret) {
 			printf("ERROR: Invalid TCLinux partition!\n");
-			return;
+			return -1;
 		}
 
 		ret = mtd_read(mtd_kernel, 0, (Tag->kernelLen + TAG_LEN), &ret_len, buf);
@@ -1449,7 +1491,7 @@ static int mtd_load_image(struct cmd_tbl *cmdtp, int flag, int argc, char *const
 		ret = setup_mtd_device(&mtd_misc, current_misc_partition);
 		if (ret) {
 			printf("ERROR: Invalid misc partition!\n");
-			return;
+			return -1;
 		}
 
 		//read mac from misc partition
@@ -1527,6 +1569,8 @@ static int mtd_load_image(struct cmd_tbl *cmdtp, int flag, int argc, char *const
 
 	}	
 #endif
+
+	return 0;
 }
 U_BOOT_CMD(
 	ldtpimg,

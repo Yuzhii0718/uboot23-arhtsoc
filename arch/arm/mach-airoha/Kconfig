@@ -100,6 +100,8 @@ config UBOOT_ARHT
 config UIP_FWUPGRADE
 	bool "uIP web firmware recovery mode"
 	depends on CMD_NET
+	select OPEN_IMAGE
+	default y
 	help
 	  Build the uIP based web recovery server into U-Boot.  It answers on
 	  the fixed address 192.168.1.1 and lets a browser upload a firmware
@@ -108,6 +110,76 @@ config UIP_FWUPGRADE
 	  The mode is entered either manually with the 'httpd' command or
 	  automatically when the board's reset key (GPIO 0, active low) is
 	  held down during the autoboot delay.
+
+config OPEN_IMAGE
+	bool "Airoha image / web upgrade support (OPEN_IMAGE)"
+	help
+	  Enable the image and upgrade support that the Airoha SDK selects with
+	  CONFIG_OPEN_IMAGE:
+	    - lib/bootlib.c: image write/verify library, button helper
+	      (check_fw_gpio/up_file) and GPIO helpers
+	    - uip/apps/webserver: the newer web upgrade flow (multipart upload,
+	      /result.html, /reset, progress page)
+	    - net/: ndisc.o and net6.o on AN7581 (see net/Makefile)
+	    - the image/bootargs code selected by CONFIG_OPEN_IMAGE in
+	      arch/arm/mach-airoha/
+
+	  Leave it off if you only use the legacy upgrade paths.
+
+choice
+	prompt "Airoha image layout type"
+	depends on OPEN_IMAGE
+	default INCLUDE_MTD_TYPE_RAW2
+	help
+	  How the tclinux image area is laid out, i.e. where the misc, kernel and
+	  rootfs parts live.  Selects INCLUDE_MTD_TYPE_RAW1 / RAW2 / FS in
+	  include/bootlib.h.  RAW2 is what Airoha/TP-Link SPI-NAND boards use,
+	  FS is for layouts whose kernel/rootfs are jffs2 files.
+
+config INCLUDE_MTD_TYPE_RAW1
+	bool "raw layout 1 (misc at the end of the image area)"
+
+config INCLUDE_MTD_TYPE_RAW2
+	bool "raw layout 2 (misc right after the bootloader)"
+
+config INCLUDE_MTD_TYPE_FS
+	bool "jffs2 filesystem layout (kernel/rootfs are files)"
+endchoice
+
+config MTD_BLOCK_SIZE
+	hex "Flash erase block size (MTD_BLOCK_SIZE)"
+	depends on OPEN_IMAGE
+	default 0x20000
+	help
+	  Block size of the flash partitions.  For SPI-NAND this is the erase
+	  block size (0x20000 = 128K).  Used as the misc partition block unit.
+
+config MTD_IMAGE_SIZE
+	hex "Size of the image area (MTD_IMAGE_SIZE)"
+	depends on OPEN_IMAGE
+	default 0x3500000
+	help
+	  Total size of bootloader + misc + kernel + rootfs.
+
+config MTD_BOOT_SIZE
+	hex "Size of the bootloader area (MTD_BOOT_SIZE)"
+	depends on OPEN_IMAGE
+	default 0x440000
+	help
+	  Size reserved for the bootloader (u-boot + its env) at the start of
+	  the image area.
+
+config MTD_KERNEL_SIZE
+	hex "Size of the kernel partition (MTD_KERNEL_SIZE)"
+	depends on OPEN_IMAGE
+	default 0x580000
+
+config MTD_MISC_SIZE
+	hex "Size of the misc partition (MTD_MISC_SIZE)"
+	depends on OPEN_IMAGE
+	default 0x200000
+	help
+	  Size of the misc partition that holds per unit data (MAC, SN, pins).
 
 config SYS_UBOOT_PARTITION_NAME
 	string "partition name of uboot"

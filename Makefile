@@ -947,6 +947,26 @@ UBOOTINCLUDE += -I$(srctree)/uip/apps/webserver
 KBUILD_CFLAGS += -DINCLUDE_UIP_FWUPGRADE
 endif
 
+# Airoha image layout.  include/bootlib.h documents these as "defined in
+# menuconfig": the vendor build passes them as plain macros, here they come
+# from the CONFIG_* symbols of the same name.
+ifneq ($(CONFIG_OPEN_IMAGE),)
+KBUILD_CFLAGS += -DMTD_BLOCK_SIZE=$(CONFIG_MTD_BLOCK_SIZE)
+KBUILD_CFLAGS += -DMTD_IMAGE_SIZE=$(CONFIG_MTD_IMAGE_SIZE)
+KBUILD_CFLAGS += -DMTD_BOOT_SIZE=$(CONFIG_MTD_BOOT_SIZE)
+KBUILD_CFLAGS += -DMTD_KERNEL_SIZE=$(CONFIG_MTD_KERNEL_SIZE)
+KBUILD_CFLAGS += -DMTD_MISC_SIZE=$(CONFIG_MTD_MISC_SIZE)
+ifneq ($(CONFIG_INCLUDE_MTD_TYPE_RAW1),)
+KBUILD_CFLAGS += -DINCLUDE_MTD_TYPE_RAW1
+endif
+ifneq ($(CONFIG_INCLUDE_MTD_TYPE_RAW2),)
+KBUILD_CFLAGS += -DINCLUDE_MTD_TYPE_RAW2
+endif
+ifneq ($(CONFIG_INCLUDE_MTD_TYPE_FS),)
+KBUILD_CFLAGS += -DINCLUDE_MTD_TYPE_FS
+endif
+endif
+
 # FIX ME
 cpp_flags := $(KBUILD_CPPFLAGS) $(PLATFORM_CPPFLAGS) $(UBOOTINCLUDE) \
 							$(NOSTDINC_FLAGS)

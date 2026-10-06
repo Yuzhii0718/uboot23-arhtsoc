@@ -25,13 +25,14 @@
 
 #include "asm/tc3162.h"
 #include "bootlib.h"
-#include "led_gpio_def.h"
 #ifdef INCLUDE_UIP_FWUPGRADE
 #include "btn_gpio_def.h"
 #endif /* INCLUDE_UIP_FWUPGRADE */
 
 #include <linux/mtd/mtd.h>
 #include <led.h>
+#include <mtd.h>
+#include <command.h>
 #include <dm/uclass-internal.h>
 
 #if defined(INCLUDE_WIFI_MTK_MT7992) || defined(INCLUDE_WIFI_MTK_MT7993) || defined(INCLUDE_WIFI_MTK_MT7996)
@@ -160,10 +161,14 @@ struct jffs2_raw_inode
 /*                                           LOCAL_PROTOTYPES                                     */
 /**************************************************************************************************/
 
+void LED_OEN(uint8_t x);
+void turn_high_gpio(uint8_t x);
+void turn_low_gpio(uint8_t x);
+
 /**************************************************************************************************/
 /*                                           VARIABLES                                            */
 /**************************************************************************************************/
-static unsigned char *l_buf = NULL;
+static unsigned char *l_buf __maybe_unused = NULL;
 
 /**************************************************************************************************/
 /*                                           LOCAL_FUNCTIONS                                      */
@@ -171,7 +176,7 @@ static unsigned char *l_buf = NULL;
 
 /************************************ SDK Specified ***********************************************/
 
-static void sdk_gpio_output_mode(unsigned short gpio)
+static void __maybe_unused sdk_gpio_output_mode(unsigned short gpio)
 {
 /*
  * brief	
@@ -191,7 +196,7 @@ static void sdk_gpio_output_mode(unsigned short gpio)
 	LED_OEN((unsigned char)gpio);
 }
 
-static void sdk_gpio_setval(unsigned short gpio, unsigned char val)
+static void __maybe_unused sdk_gpio_setval(unsigned short gpio, unsigned char val)
 {
 /*
  * brief	
@@ -392,12 +397,12 @@ static int sdk_flash_read(unsigned char *buf, unsigned int ofs, unsigned int len
 #endif
 }
 
-static int sdk_flash_erase(unsigned int ofs)
+static int __maybe_unused sdk_flash_erase(unsigned int ofs)
 {
 	return 0;
 }
 
-static int sdk_flash_write(unsigned char *buf, unsigned int ofs, unsigned int len)
+static int __maybe_unused sdk_flash_write(unsigned char *buf, unsigned int ofs, unsigned int len)
 {
 	return 0;
 }
@@ -707,84 +712,26 @@ static int boot_erase_write(unsigned char *buf, unsigned int ofs, unsigned int l
 #endif /* INCLUDE_MTD_TYPE_FS */
 #endif /*if 0 */
 
+#ifndef INCLUDE_MTD_TYPE_FS
+/*
+ * boot_read_image()/boot_write_image() use this for the raw (non filesystem)
+ * image layouts.  The original implementation sits in the #if 0 block above
+ * and its flash back ends (sdk_flash_erase()/sdk_flash_write()) are stubs in
+ * this tree, so the raw layouts cannot be written here.  Fail loudly instead
+ * of pretending success: the uIP web upgrade writes the image with the MTD
+ * helpers in arch/arm/mach-airoha/ecnt_image.c.
+ */
+static int boot_erase_write(unsigned char *buf, unsigned int ofs, unsigned int len)
+{
+	printf("boot_erase_write: raw image layout not supported in this build\n");
+
+	return -1;
+}
+#endif /* !INCLUDE_MTD_TYPE_FS */
+
 /**************************************************************************************************/
 /*                                           PUBLIC_FUNCTIONS                                     */
 /**************************************************************************************************/
-void boot_set_all_led_on(void)
-{
-	int list_len = sizeof(boot_led_def) / sizeof(struct _BOOT_LED_DEF);
-	int i;
-	int inet1 = -1;
-	int inet2 = -1;
-	int fxs1 = -1;
-	int fxs2 = -1;
-	int xpon = -1;
-	int los = -1;
-
-	for (i = 0; i < list_len; i++)
-	{
-		sdk_gpio_output_mode(boot_led_def[i].gpio);
-		if (CHAR2ID('I','N','E','T') == boot_led_def[i].id)
-		{
-			inet1 = i;
-		}
-		else if(CHAR2ID('I','N','E','2') == boot_led_def[i].id)
-		{
-			inet2 = i;
-			sdk_gpio_setval(boot_led_def[i].gpio, !boot_led_def[i].reverse);
-			continue;
-		}
-		else if (CHAR2ID('F','X','S','G') == boot_led_def[i].id)
-		{
-			fxs1 = i;
-		}
-		/* bba devleop branch, voip dual colour gpio name is FXS1/FXSR  */
-		else if (CHAR2ID('F','X','S','1') == boot_led_def[i].id)
-		{
-			fxs1 = i;
-		}
-		else if(CHAR2ID('F','X','S','R') == boot_led_def[i].id)
-		{
-			fxs2 = i;
-			sdk_gpio_setval(boot_led_def[i].gpio, !boot_led_def[i].reverse);
-			continue;
-		}
-		sdk_gpio_setval(boot_led_def[i].gpio, boot_led_def[i].reverse);
-	}
-	if ((inet2 >= 0 && inet1 >= 0) || (fxs1 >= 0 && fxs2 >= 0) || (xpon >= 0 && los >= 0))
-	{
-		udelay(500000);
-		if (inet2 >= 0 && inet1 >= 0)
-		{
-			sdk_gpio_setval(boot_led_def[inet2].gpio, boot_led_def[inet2].reverse);
-			sdk_gpio_setval(boot_led_def[inet1].gpio, !boot_led_def[inet1].reverse);
-		}
-		if (fxs2 >= 0 && fxs1 >= 0)
-		{
-			sdk_gpio_setval(boot_led_def[fxs2].gpio, boot_led_def[fxs2].reverse);
-			sdk_gpio_setval(boot_led_def[fxs1].gpio, !boot_led_def[fxs1].reverse);
-		}
-		if (los >= 0 && xpon >= 0)
-		{
-			sdk_gpio_setval(boot_led_def[los].gpio, boot_led_def[los].reverse);
-			sdk_gpio_setval(boot_led_def[xpon].gpio, !boot_led_def[xpon].reverse);
-		}
-	}
-}
-void boot_set_all_except_power_led_off(void)
-{
-	int list_len = sizeof(boot_led_def) / sizeof(struct _BOOT_LED_DEF);
-	int i;
-
-	for (i = 0; i < list_len; i++)
-	{
-		if (CHAR2ID('P','O','W','R') == boot_led_def[i].id)
-		{
-			continue;
-		}
-		sdk_gpio_setval(boot_led_def[i].gpio, !boot_led_def[i].reverse);
-	}
-}
 
 #if defined(INCLUDE_WIFI_MTK_MT7992) || defined(INCLUDE_WIFI_MTK_MT7993) || defined(INCLUDE_WIFI_MTK_MT7996)
 void boot_reset(void)
@@ -815,7 +762,7 @@ void boot_reset(void)
 }
 #endif /* INCLUDE_WIFI_MTK_MT7992 || defined(INCLUDE_WIFI_MTK_MT7993) || INCLUDE_WIFI_MTK_MT7996 */
 
-static int setup_mtd_device(struct mtd_info **mtd, const char* mtd_dev)
+static int __maybe_unused setup_mtd_device(struct mtd_info **mtd, const char* mtd_dev)
 {
 	struct mtd_info *mtd_info;
 	mtd_probe_devices();
